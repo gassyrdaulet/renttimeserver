@@ -15,7 +15,7 @@ import initExtension from "./Extension.js";
 import initDiscount from "./Discount.js";
 import initDebt from "./Debt.js";
 import initBooking from "./Booking.js";
-import initKZClient from "./KzClient.js";
+import initKZClient from "./KZClient.js";
 import initDeliveryPayoff from "./DeliveryPayoff.js";
 import initDelivery from "./Delivery.js";
 import initExemption from "./Exemption.js";
