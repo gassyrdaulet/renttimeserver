@@ -21,7 +21,7 @@ const privateKey = fs.readFileSync("./keys/privkey.pem", "utf8");
 const certificate = fs.readFileSync("./keys/cert.pem", "utf8");
 const ca = fs.readFileSync("./keys/chain.pem", "utf8");
 
-const credentials = {
+const httpscreds = {
   key: privateKey,
   cert: certificate,
   ca,
@@ -54,7 +54,7 @@ app.use("/images", express.static("./images"));
 app.listen(PORT, () => {
   console.log("Сервер запущен. Порт:", PORT);
 });
-const httpsServer = https.createServer(credentials, app);
+const httpsServer = https.createServer(httpscreds, app);
 httpsServer.listen(S_PORT, () => {
   console.log(`HTTPS сервер запущен. Порт: ${S_PORT}`);
 });
