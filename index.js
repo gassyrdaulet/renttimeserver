@@ -12,14 +12,27 @@ import ClientRoutes from "./routes/ClientRoutes.js";
 import PublicRoutes from "./routes/PublicRoutes.js";
 import firebaseAdmin from "firebase-admin";
 import credentials from "./firebase.json" assert { type: "json" };
+import https from "https";
+import fs from "fs";
 
 dotenv.config();
+
+const privateKey = fs.readFileSync("./keys/privkey.pem", "utf8");
+const certificate = fs.readFileSync("./keys/cert.pem", "utf8");
+const ca = fs.readFileSync("./keys/chain.pem", "utf8");
+
+const credentials = {
+  key: privateKey,
+  cert: certificate,
+  ca,
+};
 
 export const admin = firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(credentials),
 });
 const app = express();
 const PORT = process.env.PORT;
+const S_PORT = process.env.S_PORT;
 
 app.use(cors());
 app.use(cookieParser());
@@ -40,4 +53,8 @@ app.use("/images", express.static("./images"));
 
 app.listen(PORT, () => {
   console.log("Сервер запущен. Порт:", PORT);
+});
+const httpsServer = https.createServer(credentials, app);
+httpsServer.listen(S_PORT, () => {
+  console.log(`HTTPS сервер запущен. Порт: ${S_PORT}`);
 });

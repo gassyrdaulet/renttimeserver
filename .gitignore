@@ -1,6 +1,7 @@
 /node_modules
 /images
 /config
+/keys
 .env
 firebase.json
 plan.txt
