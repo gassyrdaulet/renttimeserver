@@ -1,0 +1,9 @@
+/node_modules
+/images
+/config
+
+.env
+db.js
+firebase.json
+plan.txt
+dbplan.txt

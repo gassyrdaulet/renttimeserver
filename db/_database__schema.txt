@@ -1,0 +1,233 @@
+character set utf8 collate utf8_unicode_ci;
+
+GENERAL TABLES:
+1) organizations
+2) users
+3) kz_bad_clients
+
+SEPARATE TABLES:
+1) roles
+2) goods
+3) kz_clients
+4) orders
+5) groups_data
+6) species
+7) payments
+8) payment_methods
+9) order_goods
+10) debts
+11) discounts
+12) extensions
+13) deliveries
+14) workshifts
+15) operations
+16) exemptions
+17) booking
+18) delivery_payoffs
+
+GENERAL TABLES:
+1) organizations: 
+	1. id int(10) unsigned auto_increment primary key
+	2. name varchar(50) not null
+	3. owner int(10) unsigned not null
+	4. address varchar(100) not null
+	5. start_work TIME not null
+	6. end_work TIME not null
+	7. region ENUM("kz")
+	8. activated boolean not null default true
+	9. premium boolean not null default false
+	10. city varchar(20) not null
+	11. bank_company_type ENUM("АО","ТОО","ОАО", "ИП") not null
+	12. company_type ENUM("АО","ТОО","ОАО", "ИП") not null
+	13. bank_company_name varchar(20) not null
+	14. company_name varchar(20) not null
+	15. template varchar(10) not null default "original"
+	16. kz_paper_bik varchar(12) not null
+	17. kz_paper_bin varchar(12) not null
+	18. kz_paper_iik varchar(20) not null
+
+2) users:
+	1. id int(10) unsigned auto_increment primary key
+	2. organization int(10) unsigned null
+	3. name varchar(50) not null
+	4. second_name varchar(50) not null
+	5. father_name varchar(50) 
+	6. cellphone varchar(30) not null
+
+3) kz_bad_clients:
+	1. id int(10) unsigned auto_increment primary key
+	2. cellphone varchar(30) not null
+	3. name varchar(50) not null
+	4. second_name varchar(50) not null
+	5. father_name varchar(50)
+	6. address varchar(500)
+	7. email varchar(50)
+	8. gender ENUM("male","female","undefined") default "undefined"
+	9. birth_date DATETIME
+	10. paper_person_id varchar(12) not null unique
+	11. paper_serial_number varchar(10) not null unique
+	12. paper_authority ENUM("mvdrk") not null
+	13. comment varchar(500) not null 
+
+SEPARATE_TABLES:
+1) goods:
+	1. id int(10) unsigned auto_increment primary key
+	2. name varchar(50) not null
+	3. photo varchar(50) null
+	4. group_id int(10) not null
+	5. compensation_price int(10) unsigned not null
+	6. price_per_minute int(10) unsigned
+	7. price_per_hour int(10) unsigned
+	8. price_per_day int(10) unsigned
+	9. price_per_month int(10) unsigned
+	10. created_date DATETIME not null default CURRENT_TIMESTAMP
+
+2) species: 
+	1. id int(10) unsigned auto_increment primary key
+	2. good int(10) unsigned not null
+	3. status ENUM("available", "broken", "repairing", "missing", "busy") not null
+	4. order int(10) unsigned
+	5. code int(10) unsigned zerofill not null unique
+	6. created_date DATETIME not null default CURRENT_TIMESTAMP
+
+3) groups_data:
+	1. id int(10) unsigned auto_increment primary key
+	2. name varchar(50) not null
+
+4) roles:
+	1. id int(10) unsigned auto_increment primary key
+	2. admin boolean not null default false
+
+5) orders:
+	1. id int(10) unsigned auto_increment primary key
+	2. client int(10) unsigned not null
+	3. author int(10) unsigned not null
+	4. comment varchar(500)
+	5. created_date DATETIME not null default CURRENT_TIMESTAMP
+	6. started_date DATETIME not null
+	7. finished_date DATETIME
+	8. for_increment BOOLEAN default false
+	9. forgive_lateness_ms int(15) unsigned
+	10. workshift_id int(10) unsigned not null
+	11. tariff ENUM("monthly","daily","hourly","minutely")
+	12. signed BOOLEAN not null default false
+	13. link_code varchar(8) not null
+	14. last_sign_sms datetime
+	15. sign_date datetime
+	16. message_id varchar(20)
+	17. cancelled boolean not null default false
+	18. cancelled_date datetime
+
+6) order_goods: 
+	1. order_id int(10) unsigned not null 
+	2. specie_id int(10) unsigned not null 
+	3. saved_price int(10) unsigned not null
+	4. saved_compensation_price int(10) unsigned not null
+	5. good_id int(10) unsigned not null
+
+7) payments:
+	1. id int(10) unsigned auto_increment primary key
+	2. order_id int(10) unsigned not null 
+	3. amount int(10) unsigned not null
+	4. fee int(10) unsigned not null
+	5. type varchar(20)
+	6. date DATETIME not null
+	7. user_id int(10) unsigned not null
+	8. workshift_id int(10) unsigned not null
+	9. is_debt boolean not null default false
+	10. verified boolean not null default false
+
+8) payment_methods:
+	1. id int(10) unsigned auto_increment primary key
+	2. name varchar(20) not null
+	3. comission float(5) unsigned not null
+
+9) extensions:
+	1. id int(10) unsigned auto_increment primary key
+	2. order_id int(10) unsigned not null 
+	3. renttime int(10) unsigned not null
+	4. date DATETIME not null default CURRENT_TIMESTAMP
+	5. user_id int(10) unsigned not null
+	6. workshift_id int(10) unsigned not null
+
+10) discounts:
+	1. id int(10) unsigned auto_increment primary key
+	2. order_id int(10) unsigned not null
+	3. amount int(10) unsigned not null
+	4. date DATETIME not null default CURRENT_TIMESTAMP
+	5. reason VARCHAR(150) 
+	6. workshift_id int(10) unsigned not null
+
+11) kz_clients:
+	1. id int(10) unsigned auto_increment primary key
+	2. cellphone varchar(30) not null
+	3. name varchar(50) not null
+	4. second_name varchar(50) not null
+	5. father_name varchar(50)
+	6. address varchar(500)
+	7. email varchar(50)
+	8. gender ENUM("male","female","undefined") default "undefined"
+	9. paper_givendate DATETIME
+	10. paper_person_id varchar(12) not null unique
+	11. paper_serial_number varchar(10) not null unique
+	12. paper_authority ENUM("mvdrk") not null
+	13. orders_count int(10) unsigned not null 
+	14. create_date DATETIME not null default CURRENT_TIMESTAMP
+
+12) debts:
+	1. id int(10) unsigned auto_increment primary key
+	2. client_id int(10) unsigned not null 
+	3. amount int(10) not null
+	5. comment varchar(150)
+	6. date DATETIME not null default CURRENT_TIMESTAMP
+	7. workshift_id int(10) unsigned not null
+
+13) exemptions:
+	1. id int(10) unsigned auto_increment primary key
+	2. client_id int(10) unsigned not null 
+	3. cause varchar(150)
+
+14) workshifts:
+	1. id int(10) unsigned auto_increment primary key
+	2. open_date DATETIME not null default CURRENT_TIMESTAMP
+	3. close_date DATETIME
+	4. responsible int(10) unsigned not null
+
+15) operations:
+	1. id int(10) unsigned auto_increment primary key
+	2. date DATETIME not null default CURRENT_TIMESTAMP
+	3. amount int(10) not null
+	4. type enum("payment", "add", "remove", "debt")
+	5. workshift_id int(10) unsigned not null
+
+16) deliveries: 
+	1. id int(10) unsigned auto_increment primary key
+	2. address varchar(500) not null
+	3. cellphone varchar(30) not null
+	4. created_date DATETIME not null default CURRENT_TIMESTAMP
+	5. went_date DATETIME
+	6. delivered_date DATETIME
+	7. finished_date DATETIME
+	8. comment varchar(200)
+	9. courier_id int(10) unsigned
+	10. order_id int(10) unsigned not null
+	11. workshift_id int(10) unsigned not null
+	12. status enum("new","wfd","processing","finished","cancelled") not null
+	13. direction enum("there","here") not null
+	14. delivery_price_for_deliver int(10) unsigned not null
+	15. delivery_price_for_customer int(10) unsigned not null
+	16. payoff_id int(10) unsigned not null
+
+17) booking:
+	1. id int(10) unsigned auto_increment primary key
+	2. good_id int(10) unsigned not null
+	3. quantity int(10) unsigned not null
+	4. booked_date DATETIME not null
+	5. term_ms int(15) unsigned not null
+	6. client_id int(10) unsigned not null
+
+18) delivery_payoffs
+	1. id int(10) unsigned auto_increment primary key
+	2. comment varchar(200)
+	3. date DATETIME not null default CURRENT_TIMESTAMP
+	4. courier_id int(10) unsigned not null
