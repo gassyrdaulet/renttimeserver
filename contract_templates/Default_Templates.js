@@ -111,13 +111,13 @@ export const contractTemplates = {
           {
             type: "text",
             text: [
-              { type: "variable", value: "client_name", source: "orderData" },
-              { type: "text", value: " " },
               {
                 type: "variable",
                 value: "client_second_name",
                 source: "orderData",
               },
+              { type: "text", value: " " },
+              { type: "variable", value: "client_name", source: "orderData" },
               { type: "text", value: " " },
               {
                 type: "variable",
@@ -734,13 +734,13 @@ export const contractTemplates = {
           {
             type: "text",
             text: [
-              { type: "variable", value: "client_name", source: "orderData" },
-              { type: "text", value: " " },
               {
                 type: "variable",
                 value: "client_second_name",
                 source: "orderData",
               },
+              { type: "text", value: " " },
+              { type: "variable", value: "client_name", source: "orderData" },
               { type: "text", value: " " },
               {
                 type: "variable",
@@ -1384,13 +1384,13 @@ export const actTemplates = {
           {
             type: "text",
             text: [
-              { type: "variable", value: "client_name", source: "orderData" },
-              { type: "text", value: " " },
               {
                 type: "variable",
                 value: "client_second_name",
                 source: "orderData",
               },
+              { type: "text", value: " " },
+              { type: "variable", value: "client_name", source: "orderData" },
               { type: "text", value: " " },
               {
                 type: "variable",
@@ -1751,13 +1751,13 @@ export const actTemplates = {
           {
             type: "text",
             text: [
-              { type: "variable", value: "client_name", source: "orderData" },
-              { type: "text", value: " " },
               {
                 type: "variable",
                 value: "client_second_name",
                 source: "orderData",
               },
+              { type: "text", value: " " },
+              { type: "variable", value: "client_name", source: "orderData" },
               { type: "text", value: " " },
               {
                 type: "variable",
