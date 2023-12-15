@@ -15,6 +15,11 @@ const initRole = (sequelize) => {
         allowNull: false,
         defaultValue: false,
       },
+      debt: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
     },
     {
       indexes: [

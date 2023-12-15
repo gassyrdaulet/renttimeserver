@@ -35,6 +35,11 @@ const initDelivery = (sequelize) => {
       comment: {
         type: DataTypes.STRING(200),
       },
+      user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unsigned: true,
+      },
       courier_id: {
         type: DataTypes.INTEGER,
         unsigned: true,
@@ -75,7 +80,6 @@ const initDelivery = (sequelize) => {
       },
       payoff_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
         unsigned: true,
       },
     },

@@ -3,7 +3,7 @@ import {
   actTemplates,
   contractTemplates,
 } from "../contract_templates/Default_Templates.js";
-import moment from "moment";
+import momentjs from "moment";
 import config from "../config/config.json" assert { type: "json" };
 import { customAlphabet } from "nanoid";
 import { sendMessage } from "../service/SMSService.js";
@@ -76,11 +76,11 @@ export const sendCode = async (req, res) => {
       return res.status(404).json({ message: "Contract code is not correct" });
     }
     if (
-      Date.now() - moment(order_plain.last_sign_sms).valueOf() <
+      Date.now() - momentjs(order_plain.last_sign_sms).valueOf() <
       SMS_EVERY_MS
     ) {
       return res.status(404).json({
-        message: `Try next time at ${moment(order_plain.last_sign_sms)
+        message: `Try next time at ${momentjs(order_plain.last_sign_sms)
           .add(SMS_EVERY_MS, "milliseconds")
           .format("DD.MM.yyyy HH:mm:ss")}`,
       });
@@ -109,6 +109,7 @@ export const sendCode = async (req, res) => {
 
 export const getContract = async (req, res) => {
   try {
+    const tzname = "Asia/Almaty";
     const { organization_id, order_id, contract_code } = req.query;
     const organization = await Organization.findOne({
       where: { id: organization_id },
@@ -145,12 +146,12 @@ export const getContract = async (req, res) => {
       supervisor: superVisorName,
       supervisor_short: superVisorShortName,
       template: organization_plain?.template,
-      work_close_time: moment(organization_plain?.end_work, "HH:mm:ss").format(
-        "HH:mm"
-      ),
-      work_open_time: moment(organization_plain?.start_work, "HH:mm:ss").format(
-        "HH:mm"
-      ),
+      work_close_time: momentjs(organization_plain?.end_work, "HH:mm:ss")
+        .tz(tzname)
+        .format("HH:mm"),
+      work_open_time: momentjs(organization_plain?.start_work, "HH:mm:ss")
+        .tz(tzname)
+        .format("HH:mm"),
     };
     const Order = createDynamicModel("Order", organization_id);
     const order = await Order.findOne({ where: { id: order_id } });
@@ -224,25 +225,28 @@ export const getContract = async (req, res) => {
       discount: discountSum,
       goods: formattedGoods,
       order_id: order_plain.id,
-      order_created_date: moment(order_plain?.created_date).format(
-        "DD.MM.yyyy HH:mm:ss"
-      ),
-      order_started_date: moment(order_plain?.started_date).format(
-        "DD.MM.yyyy"
-      ),
-      order_started_datetime: moment(order_plain?.started_date).format(
-        "DD.MM.yyyy HH:mm"
-      ),
-      order_planned_date: moment(order_plain?.started_date)
+      order_created_date: momentjs(order_plain?.created_date)
+        .tz(tzname)
+        .format("DD.MM.yyyy HH:mm:ss"),
+      order_started_date: momentjs(order_plain?.started_date)
+        .tz(tzname)
+        .format("DD.MM.yyyy"),
+      order_started_datetime: momentjs(order_plain?.started_date)
+        .tz(tzname)
+        .format("DD.MM.yyyy HH:mm"),
+      order_planned_date: momentjs(order_plain?.started_date)
         .add(renttime, TARIFF_MOMENT_KEYS[order_plain.tariff])
+        .tz(tzname)
         .format("DD.MM.yyyy HH:mm"),
       payment_sum: sum - discountSum,
       signed: order_plain.signed,
       message_id: order_plain.message_id,
-      last_sign_sms: moment(order_plain?.last_sign_sms).format(
-        "DD.MM.yyyy HH:mm:ss"
-      ),
-      sign_date: moment(order_plain?.sign_date).format("DD.MM.yyyy HH:mm:ss"),
+      last_sign_sms: momentjs(order_plain?.last_sign_sms)
+        .tz(tzname)
+        .format("DD.MM.yyyy HH:mm:ss"),
+      sign_date: momentjs(order_plain?.sign_date)
+        .tz(tzname)
+        .format("DD.MM.yyyy HH:mm:ss"),
       sum,
       compensation_sum,
       tariff_units: `${CURRENCIES[currency]}/${

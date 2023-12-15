@@ -48,7 +48,9 @@ export const newOrganization = async (req, res) => {
         await sequelize.query(`CREATE TABLE ${item}_${newId} LIKE ${item}`);
       }
       const Roles = createDynamicModel("Role", newId);
-      await Roles.create({ id, admin: true });
+      await Roles.create({ id, admin: true, debt: true });
+      const PaymentMethod = createDynamicModel("PaymentMethod", newId);
+      await PaymentMethod.create({ comission: 0, name: "Наличные" });
     } catch (e) {
       for (let item of orgSeparateTables) {
         await sequelize.query(`DROP TABLE ${item}_${newId}`);
@@ -63,6 +65,18 @@ export const newOrganization = async (req, res) => {
     return res
       .status(200)
       .json({ message: "New organization created successfully!" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getPaymentMethods = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const PaymentMethod = createDynamicModel("PaymentMethod", organization);
+    const methods = await PaymentMethod.findAll();
+    return res.status(200).json({ methods });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

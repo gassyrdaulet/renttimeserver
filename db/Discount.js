@@ -28,6 +28,11 @@ const initDiscount = (sequelize) => {
       reason: {
         type: DataTypes.STRING(150),
       },
+      user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unsigned: true,
+      },
       workshift_id: {
         type: DataTypes.INTEGER,
         allowNull: false,

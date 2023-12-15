@@ -1,8 +1,12 @@
 import { Router } from "express";
-import { newOrganization } from "../controllers/OrganizationController.js";
+import {
+  getPaymentMethods,
+  newOrganization,
+} from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
 import moment from "moment";
+import { CheckOrganization } from "../middleware/CheckOrganization.js";
 
 const textPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
 
@@ -60,5 +64,6 @@ router.post(
   checkWorkTime,
   newOrganization
 );
+router.get("/methods", CheckToken, CheckOrganization, getPaymentMethods);
 
 export default router;

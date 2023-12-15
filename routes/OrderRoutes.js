@@ -1,10 +1,17 @@
 import { Router } from "express";
 import { CheckToken } from "../middleware/CheckToken.js";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
-import { createNewOrder } from "../controllers/OrderController.js";
+import {
+  createNewOrder,
+  getOrderDetails,
+  getOrders,
+  newPayment,
+  newExtension,
+} from "../controllers/OrderController.js";
 import Joi from "joi";
 
 const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
+const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
 
 const isCISPhoneNumber = (value) => {
   // Регулярное выражение для проверки формата номера телефона Казахстана
@@ -64,6 +71,77 @@ const validateOrder = (req, res, next) => {
   }
   next();
 };
+const validateSelectParams = (req, res, next) => {
+  const intKeys = ["page", "pageSize"];
+  for (let key of intKeys) {
+    req.query[key] = parseInt(req.query[key]);
+  }
+  const selectParamsSchema = Joi.object({
+    page: Joi.number().integer().max(9999999999).min(0).required(),
+    pageSize: Joi.number().integer().max(100).min(0).required(),
+    sortBy: Joi.string().valid("id"),
+    sortOrder: Joi.string().valid("DESC", "ASC"),
+    filter: Joi.string().max(50).pattern(namePattern),
+  });
+  const validationResult = selectParamsSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateIdParam = (req, res, next) => {
+  req.query.order_id = parseInt(req.query?.order_id);
+  const idParamSchema = Joi.object({
+    order_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = idParamSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validatePayment = (req, res, next) => {
+  const intKeys = ["order_id", "amount", "payment_method_id"];
+  for (let key of intKeys) {
+    req.body[key] = parseInt(req.body[key]);
+  }
+  const paymentSchema = Joi.object({
+    order_id: Joi.number().integer().max(9999999999).min(0).required(),
+    amount: Joi.number().integer().max(9999999999).min(1).required(),
+    date: Joi.date(),
+    is_debt: Joi.boolean().required(),
+    payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = paymentSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateExtension = (req, res, next) => {
+  const intKeys = ["order_id", "renttime"];
+  for (let key of intKeys) {
+    req.body[key] = parseInt(req.body[key]);
+  }
+  const extensionSchema = Joi.object({
+    order_id: Joi.number().integer().max(9999999999).min(0).required(),
+    renttime: Joi.number().integer().max(9999999999).min(1).required(),
+    date: Joi.date(),
+  });
+  const validationResult = extensionSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 
 const router = new Router();
 
@@ -73,6 +151,34 @@ router.post(
   CheckOrganization,
   validateOrder,
   createNewOrder
+);
+router.post(
+  "/newpayment",
+  CheckToken,
+  CheckOrganization,
+  validatePayment,
+  newPayment
+);
+router.post(
+  "/newextension",
+  CheckToken,
+  CheckOrganization,
+  validateExtension,
+  newExtension
+);
+router.get(
+  "/all",
+  CheckToken,
+  CheckOrganization,
+  validateSelectParams,
+  getOrders
+);
+router.get(
+  "/details",
+  CheckToken,
+  CheckOrganization,
+  validateIdParam,
+  getOrderDetails
 );
 
 export default router;
