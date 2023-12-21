@@ -1,38 +1,44 @@
 import { DataTypes, Model } from "sequelize";
 
-const initDebt = (sequelize) => {
-  class Debt extends Model {}
-
-  Debt.init(
+const initViolation = (sequelize) => {
+  class Violation extends Model {}
+  Violation.init(
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
+      comment: {
+        type: DataTypes.STRING(200),
+      },
+      specie_id: {
+        type: DataTypes.INTEGER,
+        unsigned: true,
+      },
       client_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         unsigned: true,
       },
-      amount: {
+      order_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        unsigned: true,
       },
-      comment: {
-        type: DataTypes.STRING(150),
+      specie_violation_type: {
+        type: DataTypes.ENUM("broken", "missing"),
       },
       date: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
-      workshift_id: {
+      user_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         unsigned: true,
       },
-      user_id: {
+      workshift_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         unsigned: true,
@@ -46,13 +52,12 @@ const initDebt = (sequelize) => {
         },
       ],
       sequelize,
-      modelName: "Debt",
-      tableName: "debts",
+      modelName: "Violation",
+      tableName: "violations",
       timestamps: false,
     }
   );
-
-  return Debt;
+  return Violation;
 };
 
-export default initDebt;
+export default initViolation;

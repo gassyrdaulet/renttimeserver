@@ -1,9 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 
-const initOrder = (sequelize) => {
-  class Order extends Model {}
+const initArchiveOrder = (sequelize) => {
+  class ArchiveOrder extends Model {}
 
-  Order.init(
+  ArchiveOrder.init(
     {
       id: {
         type: DataTypes.INTEGER,
@@ -89,13 +89,13 @@ const initOrder = (sequelize) => {
         },
       ],
       sequelize,
-      modelName: "Order",
-      tableName: "orders",
+      modelName: "ArchiveOrder",
+      tableName: "archive_orders",
       timestamps: false,
     }
   );
 
-  return Order;
+  return ArchiveOrder;
 };
 
-export default initOrder;
+export default initArchiveOrder;

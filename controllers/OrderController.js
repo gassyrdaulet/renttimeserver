@@ -1,11 +1,12 @@
-import { createDynamicModel, User } from "../db/db.js";
+import { createDynamicModel, User, Organization } from "../db/db.js";
 import { Op } from "sequelize";
 import { controlOrdersCount } from "../service/ClientService.js";
 import { sendMessage } from "../service/SMSService.js";
 import config from "../config/config.json" assert { type: "json" };
 import { customAlphabet } from "nanoid";
+import moment from "moment";
 
-const { TARIFF_KEYS } = config;
+const { TARIFF_KEYS, TARIFF_MOMENT_KEYS, MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
 
 export const createNewOrder = async (req, res) => {
   try {
@@ -155,24 +156,63 @@ export const getOrders = async (req, res) => {
       "workshift_id",
     ];
     const { organization } = req.user;
-    const { page, pageSize, sortBy, sortOrder, filter } = req.query;
-    const finalFilter = filter ? filter : "";
+    const {
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      filter,
+      archive,
+      firstDate,
+      secondDate,
+      dateType,
+    } = req.query;
     const whereCondition = {
-      [Op.or]: [{ id: { [Op.like]: `%${finalFilter}%` } }],
       [Op.and]: [{ for_increment: false }],
     };
+    if (
+      Math.abs(moment(firstDate).diff(moment(secondDate), "days")) >
+      MAXIMUM_ARCHIVE_RANGE_DAYS
+    ) {
+      return res.status(400).json({ message: "Range is too big" });
+    }
+    if (archive && !(firstDate && secondDate && dateType)) {
+      return res
+        .status(400)
+        .json({ message: "Archive orders are only allowed with DateRange" });
+    }
+    if (firstDate && secondDate && dateType) {
+      whereCondition[Op.and].push({
+        [dateType]: { [Op.between]: [firstDate, secondDate] },
+      });
+    }
+    if (filter) {
+      whereCondition[Op.and].push({ id: { [Op.like]: `%${filter}%` } });
+    }
     const orderOptions = [[sortBy, sortOrder]];
-    const Order = createDynamicModel("Order", organization);
+    const Order = createDynamicModel(
+      archive ? "ArchiveOrder" : "Order",
+      organization
+    );
+    const OrderForCount = createDynamicModel("Order", organization);
     const Delivery = createDynamicModel("Delivery", organization);
+    const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
     const Extension = createDynamicModel("Extension", organization);
     const Discount = createDynamicModel("Discount", organization);
     const OrderGood = createDynamicModel("OrderGood", organization);
     const Payment = createDynamicModel("Payment", organization);
+    const totalCount = await OrderForCount.count({
+      where: { for_increment: false },
+    });
     Order.hasMany(OrderGood, { foreignKey: "order_id", as: "orderGoods" });
     Order.hasMany(Extension, { foreignKey: "order_id", as: "extensions" });
     Order.hasMany(Discount, { foreignKey: "order_id", as: "discounts" });
     Order.hasMany(Payment, { foreignKey: "order_id", as: "payments" });
     Order.hasMany(Delivery, { foreignKey: "order_id", as: "deliveries" });
+    Order.hasMany(ArchiveDelivery, {
+      foreignKey: "order_id",
+      as: "archiveDeliveries",
+    });
     const result = await Order.findAndCountAll({
       attributes: { exclude: excludedAttributesOrders },
       where: whereCondition,
@@ -207,15 +247,24 @@ export const getOrders = async (req, res) => {
         {
           model: Delivery,
           as: "deliveries",
+          attributes: ["delivery_price_for_customer", "cancelled"],
+          required: false,
+        },
+        {
+          model: ArchiveDelivery,
+          as: "archiveDeliveries",
           attributes: ["delivery_price_for_customer"],
           required: false,
         },
       ],
-      group: `Order_${organization}.id`,
+      group: archive
+        ? `ArchiveOrder_${organization}.id`
+        : `Order_${organization}.id`,
     });
     res.status(200).json({
       orders: result.rows,
       filteredTotalCount: result.count.length,
+      totalCount,
     });
   } catch (e) {
     console.log(e);
@@ -233,19 +282,32 @@ export const getOrderDetails = async (req, res) => {
     const { organization } = req.user;
     const { order_id } = req.query;
     const Client = createDynamicModel("KZClient", organization);
-    const Order = createDynamicModel("Order", organization);
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id"],
+      where: { id: order_id, for_increment: false },
+    });
+    const Order = createDynamicModel(
+      orderForCheck ? "Order" : "ArchiveOrder",
+      organization
+    );
     const Delivery = createDynamicModel("Delivery", organization);
+    const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
     const Extension = createDynamicModel("Extension", organization);
+    const Discount = createDynamicModel("Discount", organization);
+    const Payment = createDynamicModel("Payment", organization);
+    const OrderGood = createDynamicModel("OrderGood", organization);
     const Specie = createDynamicModel("Specie", organization);
     const Good = createDynamicModel("Good", organization);
-    const Discount = createDynamicModel("Discount", organization);
-    const OrderGood = createDynamicModel("OrderGood", organization);
-    const Payment = createDynamicModel("Payment", organization);
     Order.hasMany(OrderGood, { foreignKey: "order_id", as: "orderGoods" });
     Order.hasMany(Extension, { foreignKey: "order_id", as: "extensions" });
     Order.hasMany(Discount, { foreignKey: "order_id", as: "discounts" });
     Order.hasMany(Payment, { foreignKey: "order_id", as: "payments" });
     Order.hasMany(Delivery, { foreignKey: "order_id", as: "deliveries" });
+    Order.hasMany(ArchiveDelivery, {
+      foreignKey: "order_id",
+      as: "archiveDeliveries",
+    });
     Order.belongsTo(Client, { foreignKey: "client", as: "clientInfo" });
     OrderGood.belongsTo(Good, { foreignKey: "good_id", as: "good" });
     OrderGood.belongsTo(Specie, { foreignKey: "specie_id", as: "specie" });
@@ -253,9 +315,10 @@ export const getOrderDetails = async (req, res) => {
     Payment.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
     Discount.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
     Delivery.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
+    ArchiveDelivery.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
     const result = await Order.findOne({
       attributes: { exclude: excludedAttributesOrders },
-      where: { id: order_id },
+      where: { id: order_id, for_increment: false },
       include: [
         {
           model: Client,
@@ -320,9 +383,26 @@ export const getOrderDetails = async (req, res) => {
             required: false,
           },
         },
+        {
+          model: ArchiveDelivery,
+          as: "archiveDeliveries",
+          attributes: { exclude: ["order_id"] },
+          required: false,
+          include: {
+            model: User,
+            as: "userInfo",
+            attributes: ["name", "id", "cellphone"],
+            required: false,
+          },
+        },
       ],
     });
-    res.send(result);
+    if (result) {
+      return res.send(result);
+    }
+    return res.send({
+      notFound: true,
+    });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });
@@ -335,7 +415,17 @@ export const newPayment = async (req, res) => {
     const { organization, id: userId } = req.user;
     const { order_id, amount, payment_method_id, is_debt, date } = req.body;
     const Role = createDynamicModel("Role", organization);
-    const roles = await Role.findOne({ where: { id: userId } });
+    const Debt = createDynamicModel("Debt", organization);
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id", "client"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const orderInfoPlain = orderForCheck.get({ plain: true });
+    const roles = await Role.findOne({ where: { user_id: userId } });
     if (is_debt) {
       if (!roles.debt) {
         return res
@@ -362,12 +452,79 @@ export const newPayment = async (req, res) => {
       is_debt,
       verified: true,
     };
-    console.log(date);
     if (date) {
-      data.date = date;
+      data.verified_date = date;
+    } else {
+      data.verified_date = new Date();
+    }
+    if (is_debt) {
+      const debt = await Debt.create({
+        client_id: orderInfoPlain.client,
+        amount: amount,
+        comment: `ID заказа: ${orderInfoPlain.id}. Долг из оплаты.`,
+        workshift_id,
+        user_id: userId,
+      });
+      data.debt_id = debt.get({ plain: true }).id;
     }
     await Payment.create(data);
     res.status(200).json({ message: "New payment created succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const newPaymentForCourier = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const { organization, id: userId } = req.user;
+    const { order_id, amount, payment_method_id, delivery_id } = req.body;
+    const DeliveryForCheck = createDynamicModel("Delivery", organization);
+    const deliveryForCheck = await DeliveryForCheck.findOne({
+      attributes: ["id"],
+      where: {
+        id: delivery_id,
+        for_increment: false,
+        status: { [Op.or]: ["new", "wfd"] },
+      },
+    });
+    if (!deliveryForCheck) {
+      return res.status(400).json({ message: "Delivery was not found" });
+    }
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id", "client"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const PaymentMethod = createDynamicModel("PaymentMethod", organization);
+    const method = await PaymentMethod.findOne({
+      where: { id: payment_method_id, courier_access: true },
+    });
+    if (!method) {
+      return res
+        .status(400)
+        .json({ message: "Payment method with courier access was not found" });
+    }
+    const method_plain = method.get({ plain: true });
+    const Payment = createDynamicModel("Payment", organization);
+    const data = {
+      order_id,
+      amount,
+      type: method_plain.name,
+      fee: (amount * method_plain.comission) / 100,
+      user_id: userId,
+      workshift_id,
+      delivery_id,
+      for_courier: true,
+    };
+    await Payment.create(data);
+    res
+      .status(200)
+      .json({ message: "New payment for courier created succesfully" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });
@@ -379,6 +536,14 @@ export const newExtension = async (req, res) => {
     const workshift_id = 1;
     const { organization, id: userId } = req.user;
     const { order_id, renttime, date } = req.body;
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
     const Extension = createDynamicModel("Extension", organization);
     const data = {
       order_id,
@@ -391,6 +556,343 @@ export const newExtension = async (req, res) => {
     }
     await Extension.create(data);
     res.status(200).json({ message: "New extension created succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const newDiscount = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const { organization, id: userId } = req.user;
+    const { order_id, amount, date, reason } = req.body;
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const Discount = createDynamicModel("Discount", organization);
+    const data = {
+      order_id,
+      amount,
+      reason,
+      user_id: userId,
+      workshift_id,
+    };
+    if (date) {
+      data.date = date;
+    }
+    await Discount.create(data);
+    res.status(200).json({ message: "New discount created succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const newDelivery = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const excludedStatuses = ["finished", "status"];
+    const { organization, id: userId } = req.user;
+    const {
+      order_id,
+      address,
+      cellphone,
+      comment,
+      direction,
+      delivery_price_for_deliver,
+      delivery_price_for_customer,
+    } = req.body;
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const Delivery = createDynamicModel("Delivery", organization);
+    const existingDelivery = await Delivery.findOne({
+      where: { order_id, status: { [Op.notIn]: excludedStatuses }, direction },
+    });
+    if (existingDelivery) {
+      return res
+        .status(400)
+        .json({ message: "This order already has an active delivery" });
+    }
+    const data = {
+      order_id,
+      address,
+      user_id: userId,
+      cellphone,
+      comment,
+      direction,
+      delivery_price_for_deliver,
+      delivery_price_for_customer,
+      workshift_id,
+      status: "new",
+    };
+    await Delivery.create(data);
+    res.status(200).json({ message: "New extension created succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const finishOrder = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const finished_date = new Date();
+    const { organization, id: userId } = req.user;
+    const { order_id, is_debt } = req.body;
+    const Role = createDynamicModel("Role", organization);
+    const roles = await Role.findOne({ where: { user_id: userId } });
+    if (is_debt) {
+      if (!roles.debt) {
+        return res
+          .status(400)
+          .json({ message: "Access denied. You can't create debt payment" });
+      }
+    }
+    const Order = createDynamicModel("Order", organization);
+    const ArchiveOrder = createDynamicModel("ArchiveOrder", organization);
+    const Debt = createDynamicModel("Debt", organization);
+    const Delivery = createDynamicModel("Delivery", organization);
+    const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
+    const Discount = createDynamicModel("Discount", organization);
+    const Payment = createDynamicModel("Payment", organization);
+    const Specie = createDynamicModel("Specie", organization);
+    const OrderGood = createDynamicModel("OrderGood", organization);
+    Order.hasMany(OrderGood, { foreignKey: "order_id", as: "orderGoods" });
+    Order.hasMany(Discount, { foreignKey: "order_id", as: "discounts" });
+    Order.hasMany(Payment, { foreignKey: "order_id", as: "payments" });
+    Order.hasMany(Delivery, { foreignKey: "order_id", as: "deliveries" });
+    Order.hasMany(ArchiveDelivery, {
+      foreignKey: "order_id",
+      as: "archiveDeliveries",
+    });
+    const orderInfo = await Order.findOne({
+      where: { id: order_id, for_increment: false },
+      include: [
+        {
+          model: OrderGood,
+          as: "orderGoods",
+          attributes: ["saved_price"],
+          required: false,
+        },
+        {
+          model: Discount,
+          as: "discounts",
+          attributes: ["amount"],
+          required: false,
+        },
+        {
+          model: Payment,
+          as: "payments",
+          attributes: ["amount"],
+          required: false,
+        },
+        {
+          model: Delivery,
+          as: "deliveries",
+          attributes: ["delivery_price_for_customer", "cancelled"],
+          required: false,
+        },
+        {
+          model: ArchiveDelivery,
+          as: "archiveDeliveries",
+          attributes: ["delivery_price_for_customer"],
+          required: false,
+        },
+      ],
+    });
+    if (!orderInfo) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const orderInfoPlain = orderInfo.get({ plain: true });
+    if (!orderInfoPlain.signed) {
+      return res.status(400).json({ message: "Order not signed yet" });
+    }
+    if (orderInfoPlain.finished_date) {
+      return res.status(400).json({ message: "Order was already finished" });
+    }
+    let goodsSum = 0;
+    let deliveriesSum = 0;
+    let discountSum = 0;
+    let paymentSum = 0;
+    const renttime =
+      moment(finished_date).diff(
+        moment(orderInfoPlain.started_date).add(
+          orderInfoPlain.forgive_lateness_ms,
+          "milliseconds"
+        ),
+        TARIFF_MOMENT_KEYS[orderInfoPlain.tariff]
+      ) + 1;
+    orderInfoPlain.orderGoods.forEach((item) => {
+      goodsSum += item.saved_price;
+    });
+    for (let discount of orderInfoPlain.discounts) {
+      discountSum += discount.amount;
+    }
+    for (let delivery of orderInfoPlain.deliveries) {
+      if (delivery.cancelled) continue;
+      deliveriesSum += parseInt(delivery.delivery_price_for_customer);
+    }
+    for (let delivery of orderInfoPlain.archiveDeliveries) {
+      if (delivery.cancelled) continue;
+      deliveriesSum += parseInt(delivery.delivery_price_for_customer);
+    }
+    for (let payment of orderInfoPlain.payments) {
+      if (payment.verified) {
+        paymentSum += payment.amount;
+      }
+    }
+    const total = renttime * goodsSum + deliveriesSum - discountSum;
+    const difference = paymentSum - total;
+    if (difference < 0) {
+      if (!is_debt) {
+        return res
+          .status(400)
+          .json({ message: "Not enough verified payment to finish the order" });
+      }
+    }
+    if (difference !== 0) {
+      await Debt.create({
+        client_id: orderInfoPlain.client,
+        amount: difference,
+        comment: `ID заказа: ${orderInfoPlain.id}. Долг из завершения.`,
+        workshift_id,
+        user_id: userId,
+      });
+    }
+    const goods = orderInfoPlain.orderGoods.map((item) => item.specie_id);
+    await Specie.update(
+      { status: "available", order: null },
+      { where: { id: { [Op.in]: goods } } }
+    );
+    await Order.update({ finished_date }, { where: { id: order_id } });
+    const finished_order = await Order.findOne({ where: { id: order_id } });
+    await ArchiveOrder.create(finished_order.get({ plain: true }));
+    await Order.destroy({ where: { id: order_id } });
+    await Order.destroy({ where: { for_increment: true } });
+    await Order.create({
+      id: order_id,
+      client: 0,
+      author: 0,
+      started_date: new Date(),
+      workshift_id: 0,
+      tariff: "minutely",
+      link_code: "x",
+      sign_code: "0",
+      for_increment: true,
+    });
+    res.status(200).json({ message: "The order finished succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const cancelOrder = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const finished_date = new Date();
+    const { organization, id: userId } = req.user;
+    const { order_id } = req.body;
+    const Order = createDynamicModel("Order", organization);
+    const ArchiveOrder = createDynamicModel("ArchiveOrder", organization);
+    const Debt = createDynamicModel("Debt", organization);
+    const Payment = createDynamicModel("Payment", organization);
+    const Specie = createDynamicModel("Specie", organization);
+    const OrderGood = createDynamicModel("OrderGood", organization);
+    Order.hasMany(OrderGood, { foreignKey: "order_id", as: "orderGoods" });
+    Order.hasMany(Payment, { foreignKey: "order_id", as: "payments" });
+    const orderInfo = await Order.findOne({
+      where: { id: order_id, for_increment: false },
+      include: [
+        {
+          model: OrderGood,
+          as: "orderGoods",
+          attributes: ["saved_price", "specie_id"],
+          required: false,
+        },
+        {
+          model: Payment,
+          as: "payments",
+          attributes: ["amount"],
+          required: false,
+        },
+      ],
+    });
+    if (!orderInfo) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const orgInfo = await Organization.findOne({
+      attributes: ["cancel_time_ms"],
+      where: { id: organization },
+    });
+    if (!orgInfo) {
+      return res.status(400).json({ message: "Organization not found" });
+    }
+    const orderInfoPlain = orderInfo.get({ plain: true });
+    const orgInfoPlain = orgInfo.get({ plain: true });
+    if (orderInfoPlain.finished_date) {
+      return res.status(400).json({ message: "Order was already finished" });
+    }
+    if (orderInfoPlain.signed) {
+      if (
+        moment(finished_date).diff(
+          moment(orderInfoPlain.started_date),
+          "miliseconds"
+        ) > orgInfoPlain
+      ) {
+        return res.status(400).json({ message: "Cancel time is over" });
+      }
+    }
+    let paymentSum = 0;
+    for (let payment of orderInfoPlain.payments) {
+      paymentSum += payment.amount;
+    }
+    if (paymentSum > 0) {
+      await Debt.create({
+        client_id: orderInfoPlain.client,
+        amount: paymentSum,
+        comment: `ID заказа: ${orderInfoPlain.id}. Долг из отмены.`,
+        workshift_id,
+        user_id: userId,
+      });
+    }
+    const goods = orderInfoPlain.orderGoods.map((item) => item.specie_id);
+    await Specie.update(
+      { status: "available", order: null },
+      { where: { id: { [Op.in]: goods } } }
+    );
+    await Order.update(
+      { finished_date, cancelled: true },
+      { where: { id: order_id } }
+    );
+    const finished_order = await Order.findOne({ where: { id: order_id } });
+    await ArchiveOrder.create(finished_order.get({ plain: true }));
+    await Order.destroy({ where: { id: order_id } });
+    await Order.destroy({ where: { for_increment: true } });
+    await Order.create({
+      id: order_id,
+      client: 0,
+      author: 0,
+      started_date: new Date(),
+      workshift_id,
+      tariff: "minutely",
+      link_code: "x",
+      sign_code: "0",
+      for_increment: true,
+    });
+    res.status(200).json({ message: "The order cancelled succesfully" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

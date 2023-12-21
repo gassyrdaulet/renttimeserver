@@ -19,6 +19,11 @@ const initPaymentMethod = (sequelize) => {
         allowNull: false,
         unsigned: true,
       },
+      courier_access: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
     },
     {
       indexes: [

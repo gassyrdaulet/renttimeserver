@@ -10,12 +10,32 @@ const initRole = (sequelize) => {
         primaryKey: true,
         autoIncrement: true,
       },
+      user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        unsigned: true,
+      },
       admin: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,
       },
       debt: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      courier: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      manager: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      owner: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,

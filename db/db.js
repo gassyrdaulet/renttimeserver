@@ -21,6 +21,9 @@ import initDelivery from "./Delivery.js";
 import initExemption from "./Exemption.js";
 import initOperation from "./Operation.js";
 import initWorkshift from "./Workshift.js";
+import initArchiveDelivery from "./ArchiveDelivery.js";
+import initArchiveOrder from "./ArchiveOrder.js";
+import initViolation from "./Violation.js";
 
 dotenv.config();
 const isProduction = process.env?.PRODUCTION === "true";
@@ -60,6 +63,9 @@ initWorkshift(sequelize);
 initDelivery(sequelize);
 initDeliveryPayoff(sequelize);
 initKZClient(sequelize);
+initArchiveDelivery(sequelize);
+initArchiveOrder(sequelize);
+initViolation(sequelize);
 
 export default sequelize;
 

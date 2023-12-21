@@ -1,9 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 
-const initDelivery = (sequelize) => {
-  class Delivery extends Model {}
+const initArchiveDelivery = (sequelize) => {
+  class ArchiveDelivery extends Model {}
 
-  Delivery.init(
+  ArchiveDelivery.init(
     {
       id: {
         type: DataTypes.INTEGER,
@@ -78,18 +78,9 @@ const initDelivery = (sequelize) => {
         allowNull: false,
         unsigned: true,
       },
-      for_increment: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-      },
       payoff_id: {
         type: DataTypes.INTEGER,
         unsigned: true,
-      },
-      cancelled: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
       },
     },
     {
@@ -100,13 +91,13 @@ const initDelivery = (sequelize) => {
         },
       ],
       sequelize,
-      modelName: "Delivery",
-      tableName: "deliveries",
+      modelName: "ArchiveDelivery",
+      tableName: "archive_deliveries",
       timestamps: false,
     }
   );
 
-  return Delivery;
+  return ArchiveDelivery;
 };
 
-export default initDelivery;
+export default initArchiveDelivery;

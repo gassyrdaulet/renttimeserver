@@ -33,9 +33,20 @@ const initPayment = (sequelize) => {
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
+      verified_date: {
+        type: DataTypes.DATE,
+      },
       user_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        unsigned: true,
+      },
+      delivery_id: {
+        type: DataTypes.INTEGER,
+        unsigned: true,
+      },
+      debt_id: {
+        type: DataTypes.INTEGER,
         unsigned: true,
       },
       workshift_id: {
@@ -44,6 +55,11 @@ const initPayment = (sequelize) => {
         unsigned: true,
       },
       is_debt: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      for_courier: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,

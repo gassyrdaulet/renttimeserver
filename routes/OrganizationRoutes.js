@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
+  addNewUser,
   getPaymentMethods,
+  getUsers,
   newOrganization,
 } from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
@@ -54,6 +56,50 @@ function validateNewOrganization(req, res, next) {
   }
   next();
 }
+const validateGetPaymentMethods = (req, res, next) => {
+  req.query.courier_access = req.query.courier_access === "true";
+  const getPaymentSchema = Joi.object({
+    courier_access: Joi.boolean().required(),
+  });
+  const validationResult = getPaymentSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateGetUsers = (req, res, next) => {
+  const getPaymentSchema = Joi.object({
+    role: Joi.string().valid("manager", "courier", "admin"),
+  });
+  const validationResult = getPaymentSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateNewUser = (req, res, next) => {
+  const rolesSchema = Joi.object({
+    admin: Joi.boolean(),
+    debt: Joi.boolean(),
+    courier: Joi.boolean(),
+    manager: Joi.boolean(),
+  });
+  const getPaymentSchema = Joi.object({
+    user_id: Joi.number().integer().min(0).max(9999999999).required(),
+    roles: rolesSchema,
+  });
+  const validationResult = getPaymentSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 
 const router = new Router();
 
@@ -64,6 +110,20 @@ router.post(
   checkWorkTime,
   newOrganization
 );
-router.get("/methods", CheckToken, CheckOrganization, getPaymentMethods);
+router.get(
+  "/methods",
+  CheckToken,
+  CheckOrganization,
+  validateGetPaymentMethods,
+  getPaymentMethods
+);
+router.get("/users", CheckToken, CheckOrganization, validateGetUsers, getUsers);
+router.post(
+  "/newuser",
+  CheckToken,
+  CheckOrganization,
+  validateNewUser,
+  addNewUser
+);
 
 export default router;

@@ -15,7 +15,7 @@ export const contractTemplates = {
           {
             type: "text",
             text: [
-              { type: "text", value: "ДОГОВОР АРЕНДЫ ОБОРУДОВАНИЯ №" },
+              { type: "text", value: "ДОГОВОР АРЕНДЫ ОБОРУДОВАНИЯ №23-00457" },
               { type: "variable", value: "order_id", source: "orderData" },
             ],
             x: 297.5,

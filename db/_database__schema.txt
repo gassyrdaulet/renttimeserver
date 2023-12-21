@@ -6,24 +6,27 @@ GENERAL TABLES:
 3) kz_bad_clients
 
 SEPARATE TABLES:
-1) roles
-2) goods
-3) kz_clients
-4) orders
-5) groups_data
-6) species
-7) payments
-8) payment_methods
-9) order_goods
-10) debts
-11) discounts
-12) extensions
-13) deliveries
-14) workshifts
-15) operations
-16) exemptions
-17) booking
-18) delivery_payoffs
+1) roles -
+2) goods - 
+3) kz_clients - 
+4) orders ✔
+5) groups_data -
+6) species 0
+7) payments -
+8) payment_methods -
+9) order_goods -
+10) debts ✔
+11) discounts -
+12) extensions -
+13) deliveries ✔
+14) workshifts ✔
+15) operations ✔
+16) exemptions -
+17) booking -
+18) delivery_payoffs -
+19) archive_orders ✔
+20) archive_deliveries
+21) violations
 
 GENERAL TABLES:
 1) organizations: 
@@ -45,6 +48,8 @@ GENERAL TABLES:
 	16. kz_paper_bik varchar(12) not null
 	17. kz_paper_bin varchar(12) not null
 	18. kz_paper_iik varchar(20) not null
+	19. cancel_time_ms int(15) unsigned not null default 0
+	20. created_date datetime not null default CURRENT_TIMESTAMP
 
 2) users:
 	1. id int(10) unsigned auto_increment primary key
@@ -98,6 +103,10 @@ SEPARATE_TABLES:
 	1. id int(10) unsigned auto_increment primary key
 	2. admin boolean not null default false
 	3. debt boolean not null default false
+	4. courier boolean not null default false
+	5. manager boolean not null default false
+	6. owner boolean not null default false
+	7. user_id int(10) unsigned not null
 
 5) orders:
 	1. id int(10) unsigned auto_increment primary key
@@ -117,7 +126,6 @@ SEPARATE_TABLES:
 	15. sign_date datetime
 	16. message_id varchar(20)
 	17. cancelled boolean not null default false
-	18. cancelled_date datetime
 
 6) order_goods: 
 	1. order_id int(10) unsigned not null 
@@ -132,16 +140,21 @@ SEPARATE_TABLES:
 	3. amount int(10) unsigned not null
 	4. fee int(10) unsigned not null
 	5. type varchar(20)
-	6. date DATETIME not null
+	6. date DATETIME not null default CURRENT_TIMESTAMP
 	7. user_id int(10) unsigned not null
 	8. workshift_id int(10) unsigned not null
 	9. is_debt boolean not null default false
 	10. verified boolean not null default false
+	11. verified_date datetime
+	12. delivery_id int(10) unsigned
+	13. for_courier boolean not null default false
+	14. debt_id int(10) unsigned
 
 8) payment_methods:
 	1. id int(10) unsigned auto_increment primary key
 	2. name varchar(20) not null
 	3. comission float(5) unsigned not null
+	4. courier_access boolean not null default false
 
 9) extensions:
 	1. id int(10) unsigned auto_increment primary key
@@ -183,6 +196,7 @@ SEPARATE_TABLES:
 	5. comment varchar(150)
 	6. date DATETIME not null default CURRENT_TIMESTAMP
 	7. workshift_id int(10) unsigned not null
+	8. user_id int(10) unsigned not null
 
 13) exemptions:
 	1. id int(10) unsigned auto_increment primary key
@@ -220,6 +234,8 @@ SEPARATE_TABLES:
 	15. delivery_price_for_customer int(10) unsigned not null
 	16. payoff_id int(10) unsigned
 	17. user_id int(10) unsigned not null
+	18. for_increment BOOLEAN default false
+	19.	cancelled boolean not null default false
 
 17) booking:
 	1. id int(10) unsigned auto_increment primary key
@@ -234,3 +250,14 @@ SEPARATE_TABLES:
 	2. comment varchar(200)
 	3. date DATETIME not null default CURRENT_TIMESTAMP
 	4. courier_id int(10) unsigned not null
+
+19) violations
+	1. id int(10) unsigned auto_increment primary key
+	2. comment varchar(200)
+	3. specie_id int(10) unsigned
+	4. client_id int(10) unsigned not null
+	5. order_id int(10) unsigned
+	6. specie_violation_type ENUM( "broken", "missing")
+	7. date DATETIME not null default CURRENT_TIMESTAMP
+	8. workshift_id int(10) unsigned not null
+	9. user_id int(10) unsigned not null

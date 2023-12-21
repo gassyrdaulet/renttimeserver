@@ -153,7 +153,14 @@ export const getContract = async (req, res) => {
         .tz(tzname)
         .format("HH:mm"),
     };
-    const Order = createDynamicModel("Order", organization_id);
+    const OrderForCheck = createDynamicModel("Order", organization_id);
+    const orderForCheck = await OrderForCheck.findOne({
+      where: { id: order_id, for_increment: false },
+    });
+    const Order = createDynamicModel(
+      orderForCheck ? "Order" : "ArchiveOrder",
+      organization_id
+    );
     const order = await Order.findOne({ where: { id: order_id } });
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

@@ -10,6 +10,7 @@ import DebugRoutes from "./routes/DebugRoutes.js";
 import OrderRoutes from "./routes/OrderRoutes.js";
 import ClientRoutes from "./routes/ClientRoutes.js";
 import PublicRoutes from "./routes/PublicRoutes.js";
+import DeliveryRoutes from "./routes/DeliveryRoutes.js";
 import firebaseAdmin from "firebase-admin";
 import credentials from "./firebase.json" assert { type: "json" };
 import https from "https";
@@ -48,6 +49,7 @@ app.use("/api/organization/", OrganizationRoutes);
 app.use("/api/orders/", OrderRoutes);
 app.use("/api/debug/", DebugRoutes);
 app.use("/api/clients/", ClientRoutes);
+app.use("/api/deliveries/", DeliveryRoutes);
 app.use("/api/public/", PublicRoutes);
 app.use("/images", express.static("./images"));
 

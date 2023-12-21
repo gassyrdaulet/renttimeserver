@@ -5,6 +5,7 @@ export const newOrganization = async (req, res) => {
     "goods",
     "groups_data",
     "orders",
+    "archive_orders",
     "roles",
     "species",
     "order_goods",
@@ -16,10 +17,12 @@ export const newOrganization = async (req, res) => {
     "exemptions",
     "booking",
     "deliveries",
+    "archive_deliveries",
     "workshifts",
     "operations",
     "delivery_payoffs",
     "debts",
+    "violations",
   ];
   try {
     const { id } = req.user;
@@ -48,7 +51,14 @@ export const newOrganization = async (req, res) => {
         await sequelize.query(`CREATE TABLE ${item}_${newId} LIKE ${item}`);
       }
       const Roles = createDynamicModel("Role", newId);
-      await Roles.create({ id, admin: true, debt: true });
+      await Roles.create({
+        user_id: id,
+        owner: true,
+        courier: true,
+        manager: true,
+        admin: true,
+        debt: true,
+      });
       const PaymentMethod = createDynamicModel("PaymentMethod", newId);
       await PaymentMethod.create({ comission: 0, name: "Наличные" });
     } catch (e) {
@@ -74,9 +84,69 @@ export const newOrganization = async (req, res) => {
 export const getPaymentMethods = async (req, res) => {
   try {
     const { organization } = req.user;
+    const { courier_access } = req.query;
     const PaymentMethod = createDynamicModel("PaymentMethod", organization);
-    const methods = await PaymentMethod.findAll();
+    const whereCondition = {};
+    if (courier_access) {
+      whereCondition.where = { courier_access };
+    }
+    const methods = await PaymentMethod.findAll(whereCondition);
     return res.status(200).json({ methods });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getUsers = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { role } = req.query;
+    const Role = createDynamicModel("Role", organization);
+    Role.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
+    const whereCondition = {};
+    if (role) {
+      whereCondition[role] = true;
+    }
+    const users = await Role.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: User,
+          as: "userInfo",
+          attributes: { exclude: ["organization"] },
+          required: true,
+        },
+      ],
+    });
+    return res.status(200).json({ users });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const addNewUser = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { roles, user_id } = req.body;
+    const Role = createDynamicModel("Role", organization);
+    const userInfo = await User.findOne({ where: { id: user_id } });
+    if (!userInfo) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    const userInfoPlain = userInfo.get({ plain: true });
+    if (userInfoPlain.organization) {
+      return res
+        .status(400)
+        .json({ message: "User is already in another organization" });
+    }
+    await User.update({ organization }, { where: { id: user_id } });
+    await Role.create({
+      user_id,
+      ...roles,
+    });
+    return res.status(200).json({ message: "New user added successfully" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

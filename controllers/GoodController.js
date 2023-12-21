@@ -236,7 +236,7 @@ export const createNewSpecie = async (req, res) => {
     const { status, code, good_id } = req.body;
     const Specie = createDynamicModel("Specie", organization);
     await Specie.create({
-      status,
+      // status,
       code,
       good: good_id,
     });

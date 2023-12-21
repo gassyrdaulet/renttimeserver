@@ -37,6 +37,12 @@ const initOrganization = (sequelize) => {
         type: DataTypes.ENUM("kz"),
         allowNull: false,
       },
+      cancel_time_ms: {
+        type: DataTypes.INTEGER(15),
+        unsigned: true,
+        defaultValue: 0,
+        allowNull: false,
+      },
       activated: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -83,6 +89,11 @@ const initOrganization = (sequelize) => {
       kz_paper_iik: {
         type: DataTypes.STRING(20),
         allowNull: false,
+      },
+      created_date: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
     },
     {
