@@ -55,7 +55,7 @@ const validateProduct = (req, res, next) => {
   const productSchema = Joi.object({
     image: Joi.allow(null),
     name: Joi.string().max(50).required().pattern(namePattern),
-    group: Joi.number().integer().max(9999999999).min(-1).required(),
+    group_id: Joi.number().integer().max(9999999999).min(-1).required(),
     price_per_minute: Joi.number().integer().max(9999999999).min(0),
     price_per_hour: Joi.number().integer().max(9999999999).min(0),
     price_per_day: Joi.number().integer().max(9999999999).min(0),
