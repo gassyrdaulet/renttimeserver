@@ -898,3 +898,29 @@ export const cancelOrder = async (req, res) => {
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
+
+export const signPhysical = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { order_id } = req.query;
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id", "signed"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    if (orderForCheck.get({ plain: true }).signed) {
+      return res.status(400).json({ message: "Order was already signed" });
+    }
+    await OrderForCheck.update(
+      { signed: true, sign_date: new Date(), sign_type: "physical" },
+      { where: { id: order_id, for_increment: false } }
+    );
+    res.status(200).json({ message: "Order signed succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};

@@ -12,6 +12,7 @@ import {
   newDiscount,
   cancelOrder,
   newPaymentForCourier,
+  signPhysical,
 } from "../controllers/OrderController.js";
 import Joi from "joi";
 
@@ -341,6 +342,13 @@ router.get(
   CheckOrganization,
   validateIdParam,
   getOrderDetails
+);
+router.post(
+  "/signphysical",
+  CheckToken,
+  CheckOrganization,
+  validateIdParam,
+  signPhysical
 );
 
 export default router;

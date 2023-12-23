@@ -26,7 +26,8 @@ const initKZClient = (sequelize) => {
         type: DataTypes.STRING(50),
       },
       address: {
-        type: DataTypes.STRING(500),
+        type: DataTypes.STRING(200),
+        allowNull: false,
       },
       email: {
         type: DataTypes.STRING(50),
@@ -37,6 +38,7 @@ const initKZClient = (sequelize) => {
       },
       paper_givendate: {
         type: DataTypes.DATE,
+        allowNull: false,
       },
       paper_person_id: {
         type: DataTypes.STRING(12),
@@ -61,6 +63,18 @@ const initKZClient = (sequelize) => {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW,
+      },
+      city: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+      },
+      nationality: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+      },
+      born_region: {
+        type: DataTypes.STRING(30),
+        allowNull: false,
       },
     },
     {

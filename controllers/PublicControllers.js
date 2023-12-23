@@ -7,6 +7,7 @@ import momentjs from "moment";
 import config from "../config/config.json" assert { type: "json" };
 import { customAlphabet } from "nanoid";
 import { sendMessage } from "../service/SMSService.js";
+import { Op } from "sequelize";
 
 const {
   SMS_EVERY_MS,
@@ -43,8 +44,8 @@ export const confirmCode = async (req, res) => {
       return res.status(404).json({ message: "Sign code is not correct" });
     }
     await Order.update(
-      { signed: true, sign_date: new Date() },
-      { where: { id: order_id } }
+      { signed: true, sign_date: new Date(), sign_type: "remote" },
+      { where: { id: order_id, for_increment: false } }
     );
     res.status(200).json({ message: "Code successfully confirmed" });
   } catch (e) {
@@ -143,6 +144,7 @@ export const getContract = async (req, res) => {
       kz_paper_bik: organization_plain?.kz_paper_bik,
       kz_paper_bin: organization_plain?.kz_paper_bin,
       kz_paper_iik: organization_plain?.kz_paper_iik,
+      orgName: organization_plain?.name,
       supervisor: superVisorName,
       supervisor_short: superVisorShortName,
       template: organization_plain?.template,
@@ -152,6 +154,7 @@ export const getContract = async (req, res) => {
       work_open_time: momentjs(organization_plain?.start_work, "HH:mm:ss")
         .tz(tzname)
         .format("HH:mm"),
+      yearTwoDigits: momentjs().format("YY"),
     };
     const OrderForCheck = createDynamicModel("Order", organization_id);
     const orderForCheck = await OrderForCheck.findOne({
@@ -161,7 +164,9 @@ export const getContract = async (req, res) => {
       orderForCheck ? "Order" : "ArchiveOrder",
       organization_id
     );
-    const order = await Order.findOne({ where: { id: order_id } });
+    const order = await Order.findOne({
+      where: { id: order_id, for_increment: false },
+    });
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
@@ -176,14 +181,18 @@ export const getContract = async (req, res) => {
     }
     const client_plain = client.get({ plain: true });
     const Extension = createDynamicModel("Extension", organization_id);
+    const whereCondition = { order_id: order_plain.id };
+    if (order_plain.sign_date) {
+      whereCondition.date = { [Op.lt]: order_plain.sign_date };
+    }
     const extensions = await Extension.findAll({
-      where: { order_id: order_plain.id },
+      where: whereCondition,
     });
     let renttime = 0;
     extensions.forEach((extension) => (renttime += extension.renttime));
     const Discount = createDynamicModel("Discount", organization_id);
     const discounts = await Discount.findAll({
-      where: { order_id: order_plain.id },
+      where: whereCondition,
     });
     let discountSum = 0;
     discounts.forEach((discount) => (discountSum += discount.amount));
@@ -221,15 +230,30 @@ export const getContract = async (req, res) => {
     const order_data = {
       client_address: client_plain?.address,
       client_cellphone: client_plain?.cellphone,
+      client_born_date: momentjs(
+        client_plain?.paper_person_id?.slice(0, 6),
+        "YYMMDD"
+      )
+        .tz(tzname)
+        .format("DD.MM.YYYY"),
+      client_born_region: client_plain?.born_region,
+      client_city: client_plain?.city,
       client_name: client_plain?.name,
+      client_nationality: client_plain?.nationality,
+      client_paper_authority: PAPER_AUTHORITY?.[client_plain?.paper_authority],
+      client_paper_givendate: momentjs(client_plain?.paper_givendate)
+        .tz(tzname)
+        .format("DD.MM.YYYY"),
       client_paper_person_id: client_plain?.paper_person_id,
       client_paper_serial_number: client_plain?.paper_serial_number,
-      client_paper_authority: PAPER_AUTHORITY?.[client_plain?.paper_authority],
       client_second_name: client_plain?.second_name,
       client_father_name: client_plain?.father_name
         ? client_plain.father_name
         : "",
       discount: discountSum,
+      finished_date: momentjs(order_plain?.finished_date)
+        .tz(tzname)
+        .format("DD.MM.yyyy HH:mm:ss"),
       goods: formattedGoods,
       order_id: order_plain.id,
       order_created_date: momentjs(order_plain?.created_date)
@@ -241,7 +265,7 @@ export const getContract = async (req, res) => {
       order_started_datetime: momentjs(order_plain?.started_date)
         .tz(tzname)
         .format("DD.MM.yyyy HH:mm"),
-      order_planned_date: momentjs(order_plain?.started_date)
+      order_planned_datetime: momentjs(order_plain?.started_date)
         .add(renttime, TARIFF_MOMENT_KEYS[order_plain.tariff])
         .tz(tzname)
         .format("DD.MM.yyyy HH:mm"),
@@ -254,6 +278,7 @@ export const getContract = async (req, res) => {
       sign_date: momentjs(order_plain?.sign_date)
         .tz(tzname)
         .format("DD.MM.yyyy HH:mm:ss"),
+      sign_type: order_plain.sign_type,
       sum,
       compensation_sum,
       tariff_units: `${CURRENCIES[currency]}/${

@@ -9,6 +9,10 @@ import {
   createNewGroup,
   deleteGroup,
   editGroup,
+  deleteGood,
+  deleteSpecie,
+  editGood,
+  deleteImage,
 } from "../controllers/GoodController.js";
 import multer from "multer";
 import { CheckToken } from "../middleware/CheckToken.js";
@@ -38,7 +42,7 @@ const upload = multer({
 });
 const validateProduct = (req, res, next) => {
   const intKeys = [
-    "group",
+    "group_id",
     "price_per_minute",
     "price_per_hour",
     "price_per_day",
@@ -63,6 +67,37 @@ const validateProduct = (req, res, next) => {
       .required(),
   });
   const validationResult = productSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateEditGood = (req, res, next) => {
+  const intKeys = [
+    "group_id",
+    "price_per_minute",
+    "price_per_hour",
+    "price_per_day",
+    "price_per_month",
+    "compensation_price",
+  ];
+  for (let key of intKeys) {
+    req.body[key] = parseInt(req.body[key]);
+  }
+  const schema = Joi.object({
+    image: Joi.allow(null),
+    name: Joi.string().max(50).pattern(namePattern),
+    group_id: Joi.number().integer().max(9999999999).min(-1),
+    price_per_minute: Joi.number().integer().max(9999999999).min(0),
+    price_per_hour: Joi.number().integer().max(9999999999).min(0),
+    price_per_day: Joi.number().integer().max(9999999999).min(0),
+    price_per_month: Joi.number().integer().max(9999999999).min(0),
+    compensation_price: Joi.number().integer().max(9999999999).min(0),
+    good_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.body);
   if (validationResult.error) {
     return res
       .status(400)
@@ -133,6 +168,32 @@ const validateIdParam = (req, res, next) => {
   }
   next();
 };
+const validateGoodIdParam = (req, res, next) => {
+  req.query.good_id = parseInt(req.query?.good_id);
+  const schema = Joi.object({
+    good_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateSpecieIdParam = (req, res, next) => {
+  req.query.specie_id = parseInt(req.query?.specie_id);
+  const schema = Joi.object({
+    specie_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 const validateIdBody = (req, res, next) => {
   req.body.id = parseInt(req.body?.id);
   const idSchema = Joi.object({
@@ -177,6 +238,14 @@ router.post(
   upload.single("image"),
   validateProduct,
   createNewGood
+);
+router.post(
+  "/edit",
+  CheckToken,
+  CheckOrganization,
+  upload.single("image"),
+  validateEditGood,
+  editGood
 );
 router.post(
   "/newgroup",
@@ -226,6 +295,27 @@ router.get(
   CheckOrganization,
   validateIdParam,
   getGoodDetails
+);
+router.delete(
+  "/deletegood",
+  CheckToken,
+  CheckOrganization,
+  validateGoodIdParam,
+  deleteGood
+);
+router.delete(
+  "/deletespecie",
+  CheckToken,
+  CheckOrganization,
+  validateSpecieIdParam,
+  deleteSpecie
+);
+router.delete(
+  "/deleteimage",
+  CheckToken,
+  CheckOrganization,
+  validateGoodIdParam,
+  deleteImage
 );
 router.get("/allgroups", CheckToken, CheckOrganization, getAllGroups);
 

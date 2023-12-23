@@ -14,6 +14,7 @@ const router = new Router();
 const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
 const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
 const numericPattern = /^\d+$/;
+const textPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
 
 const isCISPhoneNumber = (value) => {
   // Регулярное выражение для проверки формата номера телефона Казахстана
@@ -46,12 +47,14 @@ const kzClientSchema = Joi.object({
   second_name: Joi.string().pattern(namePattern).max(50).required(),
   name: Joi.string().max(50).pattern(namePattern).required(),
   father_name: Joi.string().max(50).pattern(namePattern),
-  paper_givendate: Joi.string(),
+  paper_givendate: Joi.string().required(),
   gender: Joi.string().valid("male", "female", "undefined"),
-  address: Joi.string().pattern(addressPattern).max(500),
+  address: Joi.string().pattern(addressPattern).max(200).required(),
   email: Joi.string().email().max(50),
+  city: Joi.string().max(20).pattern(addressPattern).required(),
+  nationality: Joi.string().max(20).pattern(textPattern).required(),
+  born_region: Joi.string().max(30).pattern(addressPattern).required(),
 });
-
 const validateNewKZClient = (req, res, next) => {
   const validationResult = kzClientSchema.validate(req.body);
   if (validationResult.error) {
@@ -61,7 +64,6 @@ const validateNewKZClient = (req, res, next) => {
   }
   next();
 };
-
 const validateDate = (req, res, next) => {
   const { paper_givendate } = req.body;
   if (!paper_givendate) {
@@ -77,7 +79,6 @@ const validateDate = (req, res, next) => {
   );
   next();
 };
-
 const validateSearchText = (req, res, next) => {
   const searchSchema = Joi.object({
     searchText: Joi.string().pattern(namePattern).max(20).required(),
@@ -90,7 +91,6 @@ const validateSearchText = (req, res, next) => {
   }
   next();
 };
-
 const validateIdParam = (req, res, next) => {
   req.query.client_id = parseInt(req.query?.client_id);
   const idParamSchema = Joi.object({

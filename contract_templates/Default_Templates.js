@@ -3,6 +3,7 @@ export const contractTemplates = {
     font: "serif",
     height: 841.92,
     width: 595.32,
+    fontSize: 7,
     contentTemplate: [
       {
         rowItems: [],
@@ -15,12 +16,13 @@ export const contractTemplates = {
           {
             type: "text",
             text: [
-              { type: "text", value: "ДОГОВОР АРЕНДЫ ОБОРУДОВАНИЯ №23-00457" },
+              { type: "text", value: `ДОГОВОР АРЕНДЫ ОБОРУДОВАНИЯ №` },
+              { type: "variable", value: "yearTwoDigits", source: "orgData" },
+              { type: "text", value: `-` },
               { type: "variable", value: "order_id", source: "orderData" },
             ],
             x: 297.5,
             center: true,
-            size: 9,
             width: 550,
             weight: 600,
             color: "black",
@@ -39,7 +41,6 @@ export const contractTemplates = {
               { type: "variable", value: "city", source: "orgData" },
             ],
             x: 20,
-            size: 9,
             width: 150,
             weight: 600,
             color: "black",
@@ -54,7 +55,6 @@ export const contractTemplates = {
               },
             ],
             x: 500,
-            size: 9,
             width: 75,
             weight: 600,
             color: "black",
@@ -68,27 +68,25 @@ export const contractTemplates = {
         rowItems: [
           {
             type: "text",
-            text: [{ type: "text", value: "Арендодатель: " }],
-            x: 20,
-            size: 9,
-            width: 70,
-            weight: 600,
-            color: "black",
-          },
-          {
-            type: "text",
             text: [
               { type: "variable", value: "company_type", source: "orgData" },
               { type: "text", value: ' "' },
               { type: "variable", value: "company_name", source: "orgData" },
-              { type: "text", value: '" ' },
-              { type: "text", value: "в лице руководителя " },
+              { type: "text", value: '" / "' },
+              { type: "variable", value: "orgName", source: "orgData" },
+              { type: "text", value: '" в лице руководителя ' },
               { type: "variable", value: "supervisor", source: "orgData" },
-              { type: "text", value: ", с одной стороны, и" },
+              { type: "text", value: ", " },
+              { type: "text", value: " ИИН:" },
+              { type: "variable", value: "kz_paper_bin", source: "orgData" },
+              {
+                type: "text",
+                value:
+                  ", именуемый в дальнейшем «Арендодатель» с одной стороны, и ",
+              },
             ],
-            x: 90,
-            size: 9,
-            width: 410,
+            x: 20,
+            width: 555,
             weight: 500,
             color: "black",
           },
@@ -101,16 +99,14 @@ export const contractTemplates = {
         rowItems: [
           {
             type: "text",
-            text: [{ type: "text", value: "Арендатор:" }],
-            x: 20,
-            size: 9,
-            width: 60,
-            weight: 600,
-            color: "black",
-          },
-          {
-            type: "text",
             text: [
+              { type: "text", value: "ИИН: " },
+              {
+                type: "variable",
+                value: "client_paper_person_id",
+                source: "orderData",
+              },
+              { type: "text", value: ", " },
               {
                 type: "variable",
                 value: "client_second_name",
@@ -118,22 +114,20 @@ export const contractTemplates = {
               },
               { type: "text", value: " " },
               { type: "variable", value: "client_name", source: "orderData" },
-              { type: "text", value: " " },
               {
-                type: "variable",
-                value: "client_father_name",
-                source: "orderData",
+                type: "text",
+                value:
+                  " именуемый в дальнейшем «Арендатор», с другой стороны, а вместе именуемые Стороны, заключили договор о нижеследующем.",
               },
             ],
-            x: 80,
-            size: 9,
-            width: 375,
+            x: 20,
+            width: 555,
             weight: 500,
             color: "black",
           },
         ],
         style: {
-          bottomMargin: 15,
+          bottomMargin: 5,
         },
       },
       {
@@ -143,7 +137,6 @@ export const contractTemplates = {
             center: true,
             text: [{ type: "text", value: "1. ПРЕДМЕТ ДОГОВОРА" }],
             x: 297.5,
-            size: 9,
             width: 250,
             weight: 600,
             color: "black",
@@ -161,11 +154,32 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "1.1.Арендодатель, из числа своих материальных запасов, предоставляет Арендатору во временное пользование (в аренду, на прокат) а Арендатор обязуется уплатить Арендодателю арендную плату и по окончании срока аренды вернуть ему указанное оборудование в технический исправном состоянии.",
+                  "1.1. Арендодатель, из числа своих материальных запасов, предоставляет Арендатору во временное пользование (в аренду, прокат) имущество, инструменты, либо оборудование/я (далее Оборудование) представляющее материальную ценность, сроком и количеством согласно Акту приема-передачи оборудования (Приложение №1), которое является неотъемлемой частью настоящего договора, а Арендатор обязуется уплатить Арендодателю арендную плату и по окончанию срока аренды ему указанное Оборудование в технический исправном состоянии.",
               },
             ],
             x: 20,
-            size: 9,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "1.2. Срок временного пользования (далее по договору-аренда) Оборудования исчисляется согласно Акту приема-передачи оборудования (Приложение №1) к настоящему договору.",
+              },
+            ],
+            x: 20,
             width: 555,
             weight: 500,
             color: "black",
@@ -183,7 +197,6 @@ export const contractTemplates = {
             center: true,
             text: [{ type: "text", value: "2. ПОРЯДОК РАСЧЕТОВ" }],
             x: 297.5,
-            size: 9,
             width: 250,
             weight: 600,
             color: "black",
@@ -201,26 +214,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "2.1.Оплата предусмотренных настоящим договорам сумм, согласно Приложения № 1 к договору № ",
-              },
-              { type: "variable", value: "order_id", source: "orderData" },
-              {
-                type: "text",
-                value: " , от ",
-              },
-              {
-                value: "order_started_datetime",
-                type: "variable",
-                source: "orderData",
-              },
-              {
-                type: "text",
-                value:
-                  ". К настоящему договору, осуществляется путем перечисления денежных средств на расчетный счет Арендодателя либо путем внесения наличных денежных средств в кассу Арендодателя.",
+                  "2.1.Оплата предусмотренных настоящим договором сумм согласно Приложения №1 к настоящему договору, осуществляется путем перечисления денежных средств на расчетный счет Арендодателя либо путем внесения наличных денежных средств в кассу Арендодателя.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -239,11 +236,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "2.2 Арендатор обязан произвести 100% предоплату на весь период аренды оборудования.",
+                  "2.2.Арендатор обязан произвести 100% оплату на весь период аренды Оборудования на момент подписания данного договора.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -262,11 +258,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "2.3.В случае продления срока аренды Арендатор обязан произвести 100% предоплату за срок продления аренды оборудования.",
+                  "2.3.В случае продления срока аренды Арендатор обязан произвести 100% оплату за срок продления аренды Оборудования.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 600,
             color: "black",
@@ -284,7 +279,6 @@ export const contractTemplates = {
             center: true,
             text: [{ type: "text", value: "3. ОТВЕТСТВЕННОСТЬ СТОРОН" }],
             x: 297.5,
-            size: 9,
             width: 250,
             weight: 600,
             color: "black",
@@ -302,11 +296,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.1. Арендатор обязан использовать полученное в аренду оборудование в соответствии с условиями настоящего договора и исключительно по прямому производственному и потребительскому назначению названного оборудования.",
+                  "3.1.Арендатор обязан использовать полученную в аренду оборудование в соответствии с условиями настоящего Договора и исключительно по прямому производственному и потребительскому назначению названного оборудования.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -325,11 +318,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.2. Арендатор несет возникающие в связи с эксплуатацией арендованного оборудование расходы, в том числе на оплату текущего ремонта и расходуемых в процессе эксплуатации материалов, поддерживает оборудование в исправном, чистом состоянии.",
+                  "3.2. Арендатор несет возникающие в связи с эксплуатацией арендованного оборудования расходы, в том числе на оплату текущего ремонта и расходуемых в процессе эксплуатации материалов, поддерживает оборудование в исправном, чистом состоянии.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -348,11 +340,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.3. В случае нарушения сроков возврата оборудования по истечении срока аренды Арендатором, срок аренды оборудования считается продленным по инициативе Арендатора и уплачивается Арендатором согласно установленными настоящим договором, ценами и условиями. Минимальный срок продления 1(одни) сутки",
+                  "3.3. В случае необходимости продления срока аренды Арендатор обязуется заблаговременно уведомить Арендодателя о продлении срока аренды.   Минимальный срок продления 1 (одни) сутки. В случае продления сроков возврата оборудования по истечении срока аренды Арендатором без заблаговременного уведомления Арендодателя, срок аренды оборудования считается продленным по инициативе Арендатора.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -371,11 +362,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.4. Арендатор имеет право вернуть оборудование в случае выявления факта неправильного выбора оборудования либо утраты необходимости в оборудовании в течении 20 (двадцати) минут с момента передачи ему оборудования по Акту приема-передачи.",
+                  "3.4. Арендатор имеет право вернуть оборудование в случае выявления факта неправильного выбора оборудования либо утраты необходимости в оборудовании в течение 30 (двадцати) минут с момента передачи ему Оборудования по Акту приема-передачи. При этом в случае возвращения Арендатором оборудования ввиду досрочного расторжения договора в течение 30 минут с момента передачи ему оборудования по Акту приема-передачи, ему возвращается 100% (сто процентов) оплаченной суммы. ",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -394,11 +384,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.5. В случае полной утраты, утери, не возврата оборудования Арендодателю, Арендатор обязуется внести полную стоимость оборудования. В таком случае датой возврата оборудования и прекращение действия договора считается дата внесения денежных средств, в размере полной стоимости оборудования, согласно Приложения №1 настоящего договора, и оплаты задолженности по договору (если таковые имеются). ",
+                  "3.5. В случае порчи, поломки, утери, загрязнения Оборудования Арендатор обязуется восстановить, отремонтировать, очистить (отмыть) Оборудование, т.е. привести в исправное (чистое, рабочее) состояние за свой счет, своими силами, либо по усмотрению и требованию Арендодателя, оплатить полную стоимость оборудования. В случае загрязнения Арендатор обязуется оплатить (на момент возврата Оборудования) Арендодателю за чистку Оборудования в размере 2 000 (две тысячи) тенге. В таком случае срок окончания аренды является дата возврата исправного (восстановленного, отремонтированного, чистого) оборудования либо дата оплаты полной стоимости оборудования согласно Приложению №1 к настоящему Договору и оплаты задолженности по договору.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -417,11 +406,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.6. В случае отказа Арендатора восстанавливать (отремонтировать) испорченное (поломанное) оборудование Арендатор обязуется возместить убытки и ущерб (в том числе арендную плату за весь период ремонта оборудования) причиненный Арендодателю. ",
+                  "3.6. В случае полной утраты, утери, не возврата оборудования Арендатор обязуется внести полную стоимость оборудования и оплатить просроченную задолженность. В таком случае, датой возврата оборудования считается да та возмещения стоимости оборудования и погашение задолженности по арендным платежам, если таковые имеются.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 600,
             color: "black",
@@ -440,11 +428,142 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "3.7. В случае неоплаты задолженности по договору Арендатором на момент возврата оборудовании, Арендодатель имеет право не принять оборудование. В этом случае срок аренды считается продленным, и уплачивается Арендатором согласно установленным настоящим договором ценами и условиями . Минимальный срок продления 1(одни) сутки.",
+                  "3.7. Арендодатель не несет ответственности за причинение вреда здоровью и имуществу Арендатора и иных лиц в результате использования Арендатором Оборудования в период действия аренды Оборудования. Арендатор подтверждает, что знает правила пользования Оборудованием и технику безопасности и обязуется их соблюдать. Дополнительные средства защиты (спецодежда, перчатки, очки, маски, обувь и т.д.) являются мерой предосторожности, которую обязан обеспечить и соблюдать Арендатор за свой счет.",
               },
             ],
             x: 20,
-            size: 9,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "3.8. В случае отказа Арендатора восстановить (отремонтировать) испорченное оборудование, а также в случае отказа возвратить оборудование Арендатор обязуется возместить убытки и ущерб (в том числе арендную плату за весь период ремонта и (или) не возвращения оборудования) причиненный Арендодателю.",
+              },
+            ],
+            x: 20,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "3.9. В случае неоплаты задолженности по договору (включая оплату по п.3.5) Арендатором на момент возврата оборудования, Арендодатель имеет право не принять оборудование. В этом случае срок аренды считается продленным, и уплачивается Арендатором, согласно установленным настоящим договором ценами и условиями. Минимальный срок продления 1 (одни) сутки.",
+              },
+            ],
+            x: 20,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "3.10. Уплата пени, штрафа не освобождает Арендатора от исполнения обязательств по п.п. 3.5., 3.6 и оплате за пользование оборудованием. ",
+              },
+            ],
+            x: 20,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "3.11. В случае невозвращения оборудования и не оплаты стоимости его аренды более 5 календарных дней, данные действия Арендатора расцениваются как односторонний отказ от исполнения условий договора. В этом случае, Арендатор безоговорочно признает задолженность в размере стоимости оборудования и стоимости фактической просрочки по аренде оборудования.",
+              },
+            ],
+            x: 20,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "При этом, Арендатор признает и дает безусловное согласие на взыскание задолженности (в размере стоимости оборудования, в размере фактической просрочки по аренде оборудования, в совокупности или по отдельности) в приказном порядке, согласен на вынесение судебного приказа.",
+              },
+            ],
+            x: 20,
+            width: 555,
+            weight: 500,
+            color: "black",
+            fill: true,
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value:
+                  "3.12. Подсудность определяется по месту нахождения Арендодателя.",
+              },
+            ],
+            x: 20,
             width: 555,
             weight: 500,
             color: "black",
@@ -462,7 +581,6 @@ export const contractTemplates = {
             center: true,
             text: [{ type: "text", value: "4. ДОСТАВКА ОБОРУДОВАНИЯ" }],
             x: 297.5,
-            size: 9,
             width: 250,
             weight: 600,
             color: "black",
@@ -494,7 +612,6 @@ export const contractTemplates = {
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -512,7 +629,6 @@ export const contractTemplates = {
             center: true,
             text: [{ type: "text", value: "5. ЗАКЛЮЧИТЕЛЬНАЯ ЧАСТЬ" }],
             x: 297.5,
-            size: 9,
             width: 250,
             weight: 600,
             color: "black",
@@ -530,11 +646,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "5.1. Право пользованием оборудованием возникает у Арендатора после передачи ему оборудования по Акту приема-передачи. С этого момента риск случайной гибели, порчи, утраты, утери оборудования лежит на Арендаторе. ",
+                  "5.1. Право пользованием оборудованием возникает у Арендатора после передачи ему оборудования по Акту приема-передачи. С этого момента риск случайной порчи, утраты, утери оборудования лежит на Арендаторе.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -557,7 +672,6 @@ export const contractTemplates = {
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -576,11 +690,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "5.3. Настоящий договор составлен в двух экземплярах, на русском языке, имеющих одинаковую юридическую силу, по одному экземпляру для каждой стороны. ",
+                  "5.3. Настоящий договор составлен в двух экземплярах, на русском языке, имеющих одинаковую юридическую силу, по одному экземпляру для каждой стороны.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -603,7 +716,6 @@ export const contractTemplates = {
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -622,11 +734,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "5.5. Все спорные вопросы, а так же судебные прочие процессы по данному договору решаются уполномоченными органами относящиеся к району местонахождению Арендодателя.",
+                  "5.5.Все спорные вопросы, а так же судебные прочие процессы по данному договору решаются уполномоченными органами относящиеся к району местонахождению Арендодателя.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -645,11 +756,10 @@ export const contractTemplates = {
               {
                 type: "text",
                 value:
-                  "5.6. Подписывая договор, Арендатор дает согласие на обработку своих персональных данных, а также фото и видеосъемку",
+                  "5.6. Подписывая договор, Арендатор дает согласие на обработку своих персональных данных, а также фото и видеосъемку.",
               },
             ],
             x: 20,
-            size: 9,
             width: 555,
             weight: 500,
             color: "black",
@@ -667,7 +777,6 @@ export const contractTemplates = {
             center: true,
             text: [{ type: "text", value: "6. АДРЕСА И РЕКВИЗИТЫ СТОРОН" }],
             x: 297.5,
-            size: 9,
             width: 250,
             weight: 600,
             color: "black",
@@ -690,7 +799,6 @@ export const contractTemplates = {
             ],
             x: 20,
             width: 20,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -713,7 +821,6 @@ export const contractTemplates = {
             ],
             x: 42,
             width: 240.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -727,7 +834,6 @@ export const contractTemplates = {
             ],
             x: 315,
             width: 30,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -750,7 +856,6 @@ export const contractTemplates = {
             ],
             x: 345,
             width: 230.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -771,7 +876,6 @@ export const contractTemplates = {
             ],
             x: 20,
             width: 30,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -786,7 +890,6 @@ export const contractTemplates = {
             ],
             x: 50,
             width: 232.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -800,7 +903,6 @@ export const contractTemplates = {
             ],
             x: 315,
             width: 30,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -815,7 +917,6 @@ export const contractTemplates = {
             ],
             x: 345,
             width: 230.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -831,12 +932,11 @@ export const contractTemplates = {
             text: [
               {
                 type: "text",
-                value: "Удостоверение личности №: ",
+                value: "Документ №: ",
               },
             ],
             x: 315,
-            width: 130,
-            size: 9,
+            width: 50,
             weight: 600,
             color: "black",
           },
@@ -845,13 +945,12 @@ export const contractTemplates = {
             text: [
               {
                 type: "variable",
-                value: "client_paper_person_id",
+                value: "client_paper_serial_number",
                 source: "orderData",
               },
             ],
-            x: 445,
-            width: 130.5,
-            size: 9,
+            x: 365,
+            width: 210.5,
             weight: 500,
             color: "black",
           },
@@ -871,8 +970,7 @@ export const contractTemplates = {
               },
             ],
             x: 20,
-            width: 80,
-            size: 9,
+            width: 70,
             weight: 600,
             color: "black",
           },
@@ -885,9 +983,8 @@ export const contractTemplates = {
                 source: "orgData",
               },
             ],
-            x: 100,
-            width: 182.5,
-            size: 9,
+            x: 90,
+            width: 192.5,
             weight: 500,
             color: "black",
           },
@@ -900,8 +997,7 @@ export const contractTemplates = {
               },
             ],
             x: 315,
-            width: 85,
-            size: 9,
+            width: 70,
             weight: 600,
             color: "black",
           },
@@ -913,10 +1009,18 @@ export const contractTemplates = {
                 value: "client_paper_authority",
                 source: "orderData",
               },
+              {
+                type: "text",
+                value: " - ",
+              },
+              {
+                type: "variable",
+                value: "client_paper_givendate",
+                source: "orderData",
+              },
             ],
-            x: 400,
-            width: 175.5,
-            size: 9,
+            x: 385,
+            width: 195.5,
             weight: 500,
             color: "black",
           },
@@ -937,7 +1041,6 @@ export const contractTemplates = {
             ],
             x: 20,
             width: 35,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -961,7 +1064,6 @@ export const contractTemplates = {
             ],
             x: 55,
             width: 227.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -970,12 +1072,11 @@ export const contractTemplates = {
             text: [
               {
                 type: "text",
-                value: "Адрес:",
+                value: "Адрес проживания:",
               },
             ],
             x: 315,
-            width: 35,
-            size: 9,
+            width: 75,
             weight: 600,
             color: "black",
           },
@@ -984,13 +1085,21 @@ export const contractTemplates = {
             text: [
               {
                 type: "variable",
+                value: "client_city",
+                source: "orderData",
+              },
+              {
+                type: "text",
+                value: ", ",
+              },
+              {
+                type: "variable",
                 value: "client_address",
                 source: "orderData",
               },
             ],
-            x: 350,
-            width: 225.5,
-            size: 9,
+            x: 390,
+            width: 185.5,
             weight: 500,
             color: "black",
           },
@@ -1011,7 +1120,6 @@ export const contractTemplates = {
             ],
             x: 20,
             width: 35,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -1026,7 +1134,6 @@ export const contractTemplates = {
             ],
             x: 55,
             width: 227.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -1040,7 +1147,6 @@ export const contractTemplates = {
             ],
             x: 315,
             width: 45,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -1055,7 +1161,6 @@ export const contractTemplates = {
             ],
             x: 360,
             width: 215.5,
-            size: 9,
             weight: 500,
             color: "black",
           },
@@ -1076,7 +1181,6 @@ export const contractTemplates = {
             ],
             x: 20,
             width: 40,
-            size: 14,
             weight: 600,
             color: "black",
           },
@@ -1091,7 +1195,33 @@ export const contractTemplates = {
             ],
             x: 60,
             width: 222.5,
-            size: 14,
+            weight: 500,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value: "Дата рождения:",
+              },
+            ],
+            x: 315,
+            width: 60,
+            weight: 600,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "variable",
+                value: "client_born_date",
+                source: "orderData",
+              },
+            ],
+            x: 375,
+            width: 200.5,
             weight: 500,
             color: "black",
           },
@@ -1113,7 +1243,6 @@ export const contractTemplates = {
             ],
             x: 20,
             width: 20,
-            size: 9,
             weight: 600,
             color: "black",
           },
@@ -1128,7 +1257,67 @@ export const contractTemplates = {
             ],
             x: 40,
             width: 245.5,
-            size: 9,
+            weight: 500,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value: "Место рождения:",
+              },
+            ],
+            x: 315,
+            width: 70,
+            weight: 600,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "variable",
+                value: "client_born_region",
+                source: "orderData",
+              },
+            ],
+            x: 385,
+            width: 190.5,
+            weight: 500,
+            color: "black",
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value: "Национальность:",
+              },
+            ],
+            x: 315,
+            width: 70,
+            weight: 600,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "variable",
+                value: "client_nationality",
+                source: "orderData",
+              },
+            ],
+            x: 385,
+            width: 190.5,
             weight: 500,
             color: "black",
           },
@@ -1144,45 +1333,33 @@ export const contractTemplates = {
             text: [
               {
                 type: "text",
-                value: "Руководитель",
+                value: "Подпись",
               },
               {
                 type: "text",
-                value: " _______________ ",
+                value: " __________________ ",
               },
             ],
             x: 20,
             width: 150,
-            size: 9,
             weight: 600,
             color: "black",
           },
           {
-            type: "text",
-            text: [
-              {
-                type: "variable",
-                value: "supervisor_short",
-                source: "orgData",
-              },
-            ],
-            x: 170,
-            width: 115.2,
-            size: 9,
-            weight: 500,
-            color: "black",
+            type: "qrorg",
+            x: 140,
+            width: 140,
           },
           {
             type: "text",
             text: [
               {
                 type: "text",
-                value: "Подпись Фамилия",
+                value: "Подпись",
               },
             ],
             x: 315,
-            width: 55,
-            size: 9,
+            width: 35,
             weight: 600,
             color: "black",
           },
@@ -1191,17 +1368,16 @@ export const contractTemplates = {
             text: [
               {
                 type: "text",
-                value: " _______________ ",
+                value: " __________________ ",
               },
             ],
-            x: 370,
-            width: 200.5,
-            size: 9,
+            x: 350,
+            width: 220.5,
             weight: 600,
             color: "black",
           },
           {
-            type: "qr",
+            type: "qrclient",
             x: 450,
             width: 140,
           },
@@ -1220,11 +1396,12 @@ export const actTemplates = {
     height: 841.92,
     width: 595.32,
     padding: 20,
+    fontSize: 7,
     contentTemplate: [
       {
         rowItems: [],
         style: {
-          bottomMargin: 20,
+          bottomMargin: 15,
         },
       },
       {
@@ -1243,6 +1420,8 @@ export const actTemplates = {
             type: "text",
             text: [
               { type: "text", value: "к договору №" },
+              { type: "variable", value: "yearTwoDigits", source: "orgData" },
+              { type: "text", value: "-" },
               { type: "variable", value: "order_id", source: "orderData" },
               { type: "text", value: " от " },
               {
@@ -1259,7 +1438,7 @@ export const actTemplates = {
           },
         ],
         style: {
-          bottomMargin: 40,
+          bottomMargin: 15,
         },
       },
       {
@@ -1286,21 +1465,25 @@ export const actTemplates = {
             center: true,
             text: [{ type: "text", value: "Приема-передачи оборудования" }],
             x: 297.5,
-            size: 17,
+            size: 12,
             width: 250,
             weight: 600,
             color: "black",
           },
         ],
         style: {
-          bottomMargin: 20,
+          bottomMargin: 15,
         },
       },
       {
         rowItems: [
           {
             type: "text",
-            text: [{ type: "variable", value: "address", source: "orgData" }],
+            text: [
+              { type: "variable", value: "city", source: "orgData" },
+              { type: "text", value: ", " },
+              { type: "variable", value: "address", source: "orgData" },
+            ],
             x: 20,
             size: 12,
             width: 250,
@@ -1342,9 +1525,9 @@ export const actTemplates = {
           {
             type: "text",
             text: [{ type: "text", value: "Арендодатель: " }],
-            x: 60,
+            x: 20,
             size: 12,
-            width: 100,
+            width: 80,
             weight: 600,
             color: "black",
           },
@@ -1359,7 +1542,7 @@ export const actTemplates = {
               { type: "variable", value: "supervisor", source: "orgData" },
               { type: "text", value: ", с одной стороны, и" },
             ],
-            x: 160,
+            x: 100,
             size: 12,
             width: 410,
             weight: 500,
@@ -1406,7 +1589,7 @@ export const actTemplates = {
           },
         ],
         style: {
-          bottomMargin: 20,
+          bottomMargin: 10,
         },
       },
       {
@@ -1417,19 +1600,21 @@ export const actTemplates = {
               {
                 type: "text",
                 value:
-                  "Составили настоящий АКТ, о том что, согласно Договора аренды №",
+                  "Составили настоящий АКТ, о том что согласно Договору аренды №",
               },
+              { type: "variable", value: "yearTwoDigits", source: "orgData" },
+              { type: "text", value: "-" },
               { type: "variable", value: "order_id", source: "orderData" },
               { type: "text", value: " от " },
               {
                 type: "variable",
-                value: "order_started_datetime",
+                value: "order_started_date",
                 source: "orderData",
               },
               {
                 type: "text",
                 value:
-                  " Арендодатель передает, а Арендатор принимает в техническом исправном состоянии, следующее оборудование/я согласно списку:",
+                  " Арендодатель передает, а Арендатор принимает в технически исправном состоянии следующее оборудование/я согласно списку:",
               },
             ],
             x: 20,
@@ -1483,28 +1668,12 @@ export const actTemplates = {
             variable: "goods",
             source: "orderData",
             x: 20,
-            size: 13,
+            size: 11,
             color: "black",
           },
         ],
         style: {
-          bottomMargin: 30,
-        },
-      },
-      {
-        rowItems: [
-          {
-            type: "text",
-            text: [{ type: "text", value: "ИТОГО:" }],
-            x: 20,
-            width: 100,
-            size: 12,
-            weight: 500,
-            color: "black",
-          },
-        ],
-        style: {
-          bottomMargin: 0,
+          bottomMargin: 15,
         },
       },
       {
@@ -1512,7 +1681,11 @@ export const actTemplates = {
           {
             type: "text",
             text: [
-              { type: "text", value: "Итого по списку 1, на общую сумму: " },
+              {
+                type: "text",
+                value:
+                  "Итого по списку передается оборудования на общую сумму: ",
+              },
               {
                 type: "variable",
                 value: "compensation_sum",
@@ -1528,7 +1701,7 @@ export const actTemplates = {
           },
         ],
         style: {
-          bottomMargin: 10,
+          bottomMargin: 0,
         },
       },
       {
@@ -1539,7 +1712,7 @@ export const actTemplates = {
               {
                 type: "text",
                 value:
-                  "3. Подписывая акт приема-передачи оборудования, Арендатор подтверждает, что претензий по количеству, качеству и комплектности не имеет.",
+                  "Подписывая акт приема-передачи оборудования, Арендатор подтверждает, что претензий по количеству, качеству и комплектности не имеет.",
               },
             ],
             x: 20,
@@ -1560,7 +1733,7 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: "Итого общая сумма за аренду: ",
+                value: "Сумма за аренду: ",
               },
               {
                 type: "variable",
@@ -1622,7 +1795,7 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: "Оплачено за аренду: ",
+                value: "Итого: ",
               },
               {
                 type: "variable",
@@ -1653,11 +1826,20 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: "Уплачено до: ",
+                value: "Срок аренды с: ",
               },
               {
                 type: "variable",
-                value: "order_planned_date",
+                value: "order_started_datetime",
+                source: "orderData",
+              },
+              {
+                type: "text",
+                value: " До: ",
+              },
+              {
+                type: "variable",
+                value: "order_planned_datetime",
                 source: "orderData",
               },
             ],
@@ -1669,7 +1851,7 @@ export const actTemplates = {
           },
         ],
         style: {
-          bottomMargin: 20,
+          bottomMargin: 15,
         },
       },
       {
@@ -1685,7 +1867,7 @@ export const actTemplates = {
             center: true,
             x: 297.5,
             width: 555,
-            size: 18,
+            size: 12,
             weight: 600,
             color: "black",
           },
@@ -1707,7 +1889,6 @@ export const actTemplates = {
             ],
             x: 20,
             width: 20,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -1730,7 +1911,6 @@ export const actTemplates = {
             ],
             x: 42,
             width: 240.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -1744,7 +1924,6 @@ export const actTemplates = {
             ],
             x: 315,
             width: 30,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -1767,7 +1946,6 @@ export const actTemplates = {
             ],
             x: 345,
             width: 230.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -1788,7 +1966,6 @@ export const actTemplates = {
             ],
             x: 20,
             width: 30,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -1803,7 +1980,6 @@ export const actTemplates = {
             ],
             x: 50,
             width: 232.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -1817,7 +1993,6 @@ export const actTemplates = {
             ],
             x: 315,
             width: 30,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -1832,7 +2007,6 @@ export const actTemplates = {
             ],
             x: 345,
             width: 230.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -1848,12 +2022,11 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: "Удостоверение личности №: ",
+                value: "Документ №: ",
               },
             ],
             x: 315,
-            width: 130,
-            size: 10,
+            width: 50,
             weight: 600,
             color: "black",
           },
@@ -1862,13 +2035,12 @@ export const actTemplates = {
             text: [
               {
                 type: "variable",
-                value: "client_paper_person_id",
+                value: "client_paper_serial_number",
                 source: "orderData",
               },
             ],
-            x: 445,
-            width: 130.5,
-            size: 10,
+            x: 365,
+            width: 210.5,
             weight: 500,
             color: "black",
           },
@@ -1888,8 +2060,7 @@ export const actTemplates = {
               },
             ],
             x: 20,
-            width: 80,
-            size: 10,
+            width: 70,
             weight: 600,
             color: "black",
           },
@@ -1902,9 +2073,8 @@ export const actTemplates = {
                 source: "orgData",
               },
             ],
-            x: 100,
-            width: 182.5,
-            size: 10,
+            x: 90,
+            width: 192.5,
             weight: 500,
             color: "black",
           },
@@ -1917,8 +2087,7 @@ export const actTemplates = {
               },
             ],
             x: 315,
-            width: 85,
-            size: 10,
+            width: 70,
             weight: 600,
             color: "black",
           },
@@ -1930,10 +2099,18 @@ export const actTemplates = {
                 value: "client_paper_authority",
                 source: "orderData",
               },
+              {
+                type: "text",
+                value: " - ",
+              },
+              {
+                type: "variable",
+                value: "client_paper_givendate",
+                source: "orderData",
+              },
             ],
-            x: 400,
-            width: 175.5,
-            size: 10,
+            x: 385,
+            width: 195.5,
             weight: 500,
             color: "black",
           },
@@ -1954,7 +2131,6 @@ export const actTemplates = {
             ],
             x: 20,
             width: 35,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -1978,7 +2154,6 @@ export const actTemplates = {
             ],
             x: 55,
             width: 227.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -1987,12 +2162,11 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: "Адрес:",
+                value: "Адрес проживания:",
               },
             ],
             x: 315,
-            width: 35,
-            size: 10,
+            width: 75,
             weight: 600,
             color: "black",
           },
@@ -2001,13 +2175,21 @@ export const actTemplates = {
             text: [
               {
                 type: "variable",
+                value: "client_city",
+                source: "orderData",
+              },
+              {
+                type: "text",
+                value: ", ",
+              },
+              {
+                type: "variable",
                 value: "client_address",
                 source: "orderData",
               },
             ],
-            x: 350,
-            width: 225.5,
-            size: 10,
+            x: 390,
+            width: 185.5,
             weight: 500,
             color: "black",
           },
@@ -2028,7 +2210,6 @@ export const actTemplates = {
             ],
             x: 20,
             width: 35,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -2043,7 +2224,6 @@ export const actTemplates = {
             ],
             x: 55,
             width: 227.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -2057,7 +2237,6 @@ export const actTemplates = {
             ],
             x: 315,
             width: 45,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -2072,7 +2251,6 @@ export const actTemplates = {
             ],
             x: 360,
             width: 215.5,
-            size: 10,
             weight: 500,
             color: "black",
           },
@@ -2093,7 +2271,6 @@ export const actTemplates = {
             ],
             x: 20,
             width: 40,
-            size: 12,
             weight: 600,
             color: "black",
           },
@@ -2108,7 +2285,33 @@ export const actTemplates = {
             ],
             x: 60,
             width: 222.5,
-            size: 12,
+            weight: 500,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value: "Дата рождения:",
+              },
+            ],
+            x: 315,
+            width: 60,
+            weight: 600,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "variable",
+                value: "client_born_date",
+                source: "orderData",
+              },
+            ],
+            x: 375,
+            width: 200.5,
             weight: 500,
             color: "black",
           },
@@ -2130,7 +2333,6 @@ export const actTemplates = {
             ],
             x: 20,
             width: 20,
-            size: 10,
             weight: 600,
             color: "black",
           },
@@ -2145,7 +2347,67 @@ export const actTemplates = {
             ],
             x: 40,
             width: 245.5,
-            size: 10,
+            weight: 500,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value: "Место рождения:",
+              },
+            ],
+            x: 315,
+            width: 70,
+            weight: 600,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "variable",
+                value: "client_born_region",
+                source: "orderData",
+              },
+            ],
+            x: 385,
+            width: 190.5,
+            weight: 500,
+            color: "black",
+          },
+        ],
+        style: {
+          bottomMargin: 0,
+        },
+      },
+      {
+        rowItems: [
+          {
+            type: "text",
+            text: [
+              {
+                type: "text",
+                value: "Национальность:",
+              },
+            ],
+            x: 315,
+            width: 70,
+            weight: 600,
+            color: "black",
+          },
+          {
+            type: "text",
+            text: [
+              {
+                type: "variable",
+                value: "client_nationality",
+                source: "orderData",
+              },
+            ],
+            x: 385,
+            width: 190.5,
             weight: 500,
             color: "black",
           },
@@ -2161,45 +2423,33 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: "Руководитель",
+                value: "Подпись",
               },
               {
                 type: "text",
-                value: " _______________ ",
+                value: " __________________ ",
               },
             ],
             x: 20,
             width: 150,
-            size: 10,
             weight: 600,
             color: "black",
           },
           {
-            type: "text",
-            text: [
-              {
-                type: "variable",
-                value: "supervisor_short",
-                source: "orgData",
-              },
-            ],
-            x: 170,
-            width: 115.2,
-            size: 10,
-            weight: 500,
-            color: "black",
+            type: "qrorg",
+            x: 140,
+            width: 140,
           },
           {
             type: "text",
             text: [
               {
                 type: "text",
-                value: "Подпись Фамилия",
+                value: "Подпись",
               },
             ],
             x: 315,
-            width: 55,
-            size: 10,
+            width: 35,
             weight: 600,
             color: "black",
           },
@@ -2208,17 +2458,16 @@ export const actTemplates = {
             text: [
               {
                 type: "text",
-                value: " _______________ ",
+                value: " __________________ ",
               },
             ],
-            x: 370,
-            width: 200.5,
-            size: 10,
+            x: 350,
+            width: 220.5,
             weight: 600,
             color: "black",
           },
           {
-            type: "qr",
+            type: "qrclient",
             x: 450,
             width: 140,
           },

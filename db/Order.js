@@ -80,6 +80,11 @@ const initOrder = (sequelize) => {
         allowNull: false,
         defaultValue: false,
       },
+      sign_type: {
+        type: DataTypes.ENUM("physical", "remote", "none"),
+        allowNull: false,
+        defaultValue: "none",
+      },
     },
     {
       indexes: [

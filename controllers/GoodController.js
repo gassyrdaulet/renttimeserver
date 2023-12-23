@@ -83,6 +83,54 @@ export const getSpecies = async (req, res) => {
   }
 };
 
+export const deleteGood = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { good_id } = req.query;
+    const Good = createDynamicModel("Good", organization);
+    const Specie = createDynamicModel("Specie", organization);
+    Good.hasMany(Specie, { foreignKey: "good_id", as: "species" });
+    const goodInfo = await Good.findOne({
+      where: { id: good_id },
+    });
+    if (!goodInfo) {
+      return res.status(400).json({ message: "Good not found" });
+    }
+    const goodInfoPlain = goodInfo.get({ plain: true });
+    if (goodInfoPlain.species?.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Can not delete good with species" });
+    }
+    await Good.destroy({ where: { id: good_id } });
+    res.status(200).json({ message: "Good deleted successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const deleteSpecie = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { specie_id } = req.query;
+    const Specie = createDynamicModel("Specie", organization);
+    const specieInfo = await Specie.findOne({ where: { id: specie_id } });
+    if (!specieInfo) {
+      return res.status(400).json({ message: "Specie not found" });
+    }
+    const specieInfoPlain = specieInfo.get({ plain: true });
+    if (specieInfoPlain.status === "busy" || specieInfoPlain.order) {
+      return res.status(400).json({ message: "Specie is busy" });
+    }
+    await Specie.destroy({ where: { id: specie_id } });
+    res.status(200).json({ message: "Specie deleted successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
 export const getAllGroups = async (req, res) => {
   try {
     const { organization } = req.user;
@@ -105,7 +153,7 @@ export const createNewGood = async (req, res) => {
     const {
       name,
       image,
-      group,
+      group_id,
       price_per_minute,
       price_per_hour,
       price_per_day,
@@ -117,7 +165,7 @@ export const createNewGood = async (req, res) => {
       await Good.create({
         name,
         photo: null,
-        group_id: group,
+        group_id,
         price_per_minute,
         price_per_hour,
         price_per_day,
@@ -168,6 +216,105 @@ export const createNewGood = async (req, res) => {
       return res.status(500).json({ message });
     }
     return res.status(200).json({ message: "New good created successfully" });
+  } catch (e) {
+    if (e?.original?.errno === 1062) {
+      return res.status(400).json({ message: `Duplicate entry` });
+    }
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const editGood = async (req, res) => {
+  try {
+    const minWidth = 256;
+    const minHeight = 256;
+    const { organization } = req.user;
+    const { image, good_id } = req.body;
+    delete req.body.image;
+    delete req.body.good_id;
+    const Good = createDynamicModel("Good", organization);
+    const goodInfo = await Good.findOne({ where: { id: good_id } });
+    if (!goodInfo) {
+      return res.status(400).json({ message: "Good not found" });
+    }
+    const goodInfoPlain = goodInfo.get({ plain: true });
+    await Good.update(
+      {
+        ...req.body,
+      },
+      { where: { id: good_id } }
+    );
+    const randomName = customAlphabet(
+      "1234567890abcdefghijklmnopqrstuvwxyz",
+      7
+    )();
+    try {
+      if (image && image !== null && image !== "null") {
+        await deleteImagesByProductID(
+          goodInfoPlain.photo + goodInfoPlain.id,
+          organization
+        );
+        const imageData = image.replace(/^data:image\/\w+;base64,/, "");
+        const imageBuffer = Buffer.from(imageData, "base64");
+        const resolutions = getImageResolution(imageBuffer);
+        if (resolutions.width < minWidth || resolutions.height < minHeight) {
+          throw new Error(
+            `Image resolutions are too small: minWidth = ${minWidth}, minHeight = ${minHeight}`
+          );
+        }
+        await createThumbnailFromBuffer(
+          imageBuffer,
+          `small_${randomName}${good_id}`,
+          100,
+          organization
+        );
+        await createThumbnailFromBuffer(
+          imageBuffer,
+          `medium_${randomName}${good_id}`,
+          256,
+          organization
+        );
+        await saveFromBuffer(
+          imageBuffer,
+          `original_${randomName}${good_id}`,
+          organization
+        );
+        await Good.update({ photo: randomName }, { where: { id: good_id } });
+      }
+    } catch (e) {
+      const message = e?.message ? e.message : "Image upload error";
+      return res.status(400).json({ message });
+    }
+    return res.status(200).json({ message: "Good edited successfully" });
+  } catch (e) {
+    if (e?.original?.errno === 1062) {
+      return res.status(400).json({ message: `Duplicate entry` });
+    }
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const deleteImage = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { good_id } = req.query;
+    const Good = createDynamicModel("Good", organization);
+    const goodInfo = await Good.findOne({ where: { id: good_id } });
+    if (!goodInfo) {
+      return res.status(400).json({ message: "Good not found" });
+    }
+    const goodInfoPlain = goodInfo.get({ plain: true });
+    await Good.update(
+      {
+        photo: null,
+      },
+      { where: { id: good_id } }
+    );
+    await deleteImagesByProductID(
+      goodInfoPlain.photo + goodInfoPlain.id,
+      organization
+    );
+    return res.status(200).json({ message: "Image deleted successfully" });
   } catch (e) {
     if (e?.original?.errno === 1062) {
       return res.status(400).json({ message: `Duplicate entry` });
