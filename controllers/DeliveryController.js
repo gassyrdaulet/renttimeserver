@@ -7,7 +7,7 @@ const { MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
 
 export const getDeliveryDetails = async (req, res) => {
   try {
-    const excludedAttributesOrders = ["for_increment"];
+    const excludedAttributes = ["for_increment"];
     const { organization } = req.user;
     const { delivery_id } = req.query;
     const DeliveryForCheck = createDynamicModel("Delivery", organization);
@@ -58,7 +58,7 @@ export const getDeliveryDetails = async (req, res) => {
     Delivery.belongsTo(User, { foreignKey: "user_id", as: "author" });
     Delivery.belongsTo(Order, { foreignKey: "order_id", as: "orderInfo" });
     const result = await Delivery.findOne({
-      attributes: { exclude: excludedAttributesOrders },
+      attributes: { exclude: excludedAttributes },
       where: { id: delivery_id, for_increment: false },
       include: [
         {
@@ -113,7 +113,7 @@ export const getDeliveryDetails = async (req, res) => {
 
 export const getDeliveries = async (req, res) => {
   try {
-    const excludedAttributesOrders = [
+    const excludedAttributes = [
       "cellphone",
       "for_increment",
       "workshift_id",
@@ -200,7 +200,7 @@ export const getDeliveries = async (req, res) => {
     OrderGood.belongsTo(Good, { foreignKey: "good_id", as: "good" });
     OrderGood.belongsTo(Specie, { foreignKey: "specie_id", as: "specie" });
     const result = await Delivery.findAndCountAll({
-      attributes: { exclude: excludedAttributesOrders },
+      attributes: { exclude: excludedAttributes },
       where: whereCondition,
       order: orderOptions,
       limit: pageSize,
@@ -414,6 +414,7 @@ export const refuseDelivery = async (req, res) => {
     const { delivery_id } = req.query;
     const now = new Date();
     const Role = createDynamicModel("Role", organization);
+    const Payment = createDynamicModel("Payment", organization);
     const roles = await Role.findOne({ where: { user_id: userId } });
     if (!roles) {
       return res
@@ -455,10 +456,15 @@ export const refuseDelivery = async (req, res) => {
       }
     );
     for (let field of fieldsToRemove) delete deliveryInfoPlain[field];
-    await Delivery.create({
+    const newDelivery = await Delivery.create({
       ...deliveryInfoPlain,
       status: "new",
     });
+    const newDeliveryPlain = newDelivery.get({ plain: true });
+    await Payment.update(
+      { delivery_id: newDeliveryPlain.id },
+      { where: { delivery_id } }
+    );
     await res.status(200).json({
       message: "Delivery successfully refused",
     });
@@ -503,7 +509,7 @@ export const finishDeliveries = async (req, res) => {
       }
       if (delivery.status !== "processing") {
         return res.status(400).json({
-          message: "Deliveries should statuses must be processing",
+          message: "Delivery status must be processing",
         });
       }
     }
@@ -557,6 +563,169 @@ export const finishDeliveries = async (req, res) => {
     await res.status(200).json({
       message: "Deliveries successfully finished",
       totalSuccess: succeeded,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const newDelivery = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const excludedStatuses = ["finished", "status"];
+    const { organization, id: userId } = req.user;
+    const {
+      order_id,
+      address,
+      cellphone,
+      comment,
+      direction,
+      delivery_price_for_deliver,
+      delivery_price_for_customer,
+    } = req.body;
+    const OrderForCheck = createDynamicModel("Order", organization);
+    const orderForCheck = await OrderForCheck.findOne({
+      attributes: ["id"],
+      where: { id: order_id, for_increment: false },
+    });
+    if (!orderForCheck) {
+      return res.status(400).json({ message: "Order was not found" });
+    }
+    const Delivery = createDynamicModel("Delivery", organization);
+    const existingDelivery = await Delivery.findOne({
+      attributes: ["id"],
+      where: {
+        order_id,
+        status: { [Op.notIn]: excludedStatuses },
+        direction,
+        for_increment: false,
+      },
+    });
+    if (existingDelivery) {
+      return res
+        .status(400)
+        .json({ message: "This order already has an active delivery" });
+    }
+    const data = {
+      order_id,
+      address,
+      user_id: userId,
+      cellphone,
+      comment,
+      direction,
+      delivery_price_for_deliver,
+      delivery_price_for_customer,
+      workshift_id,
+      status: "new",
+    };
+    await Delivery.create(data);
+    res.status(200).json({ message: "New delivery created succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const editDelivery = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const {
+      delivery_id,
+      address,
+      cellphone,
+      comment,
+      delivery_price_for_deliver,
+      delivery_price_for_customer,
+    } = req.body;
+    const Delivery = createDynamicModel("Delivery", organization);
+    const existingDelivery = await Delivery.findOne({
+      attributes: ["id"],
+      where: {
+        id: delivery_id,
+        status: { [Op.in]: ["new", "wfd"] },
+        for_increment: false,
+      },
+    });
+    if (!existingDelivery) {
+      return res
+        .status(400)
+        .json({ message: "Delivery not found or inproper status" });
+    }
+    const data = {
+      address,
+      cellphone,
+      comment,
+      delivery_price_for_deliver,
+      delivery_price_for_customer,
+    };
+    await Delivery.update(data, { where: { id: delivery_id } });
+    res.status(200).json({ message: "Delivery edited succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const cancelDelivery = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const fieldsToRemove = ["status", "for_increment", "cancelled"];
+    const { organization } = req.user;
+    const { delivery_id } = req.query;
+    const now = new Date();
+    const Delivery = createDynamicModel("Delivery", organization);
+    const Payment = createDynamicModel("Payment", organization);
+    const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
+    const deliveryInfo = await Delivery.findOne({
+      where: {
+        id: delivery_id,
+        for_increment: false,
+        status: { [Op.in]: ["new", "wfd"] },
+      },
+    });
+    if (!deliveryInfo) {
+      return res.status(400).json({
+        message: `Delivery not found!`,
+      });
+    }
+    const deliveryPlain = deliveryInfo.get({ plain: true });
+    if (deliveryPlain.status === "new") {
+      for (let field of fieldsToRemove) delete deliveryPlain[field];
+      await ArchiveDelivery.create({
+        ...deliveryPlain,
+        status: "cancelled",
+        finished_date: now,
+        cancelled: true,
+      });
+      await Delivery.destroy({ where: { id: delivery_id } });
+      await Delivery.destroy({ where: { for_increment: true } });
+      await Delivery.create({
+        id: delivery_id,
+        for_increment: true,
+        address: "x",
+        cellphone: "0",
+        order_id: 0,
+        workshift_id,
+        status: "new",
+        direction: "there",
+        delivery_price_for_deliver: 0,
+        delivery_price_for_customer: 0,
+        user_id: 0,
+      });
+    }
+    if (deliveryPlain.status === "wfd") {
+      await Delivery.update(
+        {
+          status: "processing",
+          cancelled: true,
+        },
+        { where: { id: delivery_id } }
+      );
+    }
+    await Payment.destroy({ where: { delivery_id: delivery_id } });
+    await res.status(200).json({
+      message: "Delivery successfully cancelled",
     });
   } catch (e) {
     console.log(e);

@@ -56,7 +56,12 @@ export const getGoodDetails = async (req, res) => {
     const { organization } = req.user;
     const { good_id } = req.query;
     const Good = createDynamicModel("Good", organization);
-    const good = await Good.findOne({ where: { id: good_id } });
+    const Group = createDynamicModel("Group", organization);
+    Good.belongsTo(Group, { foreignKey: "group_id", as: "groupInfo" });
+    const good = await Good.findOne({
+      where: { id: good_id },
+      include: [{ model: Group, as: "groupInfo", required: false }],
+    });
     return res.send(good);
   } catch (e) {
     res.status(500).json({ message: "Unknown internal error" });
@@ -89,9 +94,12 @@ export const deleteGood = async (req, res) => {
     const { good_id } = req.query;
     const Good = createDynamicModel("Good", organization);
     const Specie = createDynamicModel("Specie", organization);
-    Good.hasMany(Specie, { foreignKey: "good_id", as: "species" });
+    Good.hasMany(Specie, { foreignKey: "good", as: "species" });
     const goodInfo = await Good.findOne({
       where: { id: good_id },
+      include: [
+        { model: Specie, required: false, attributes: ["id"], as: "species" },
+      ],
     });
     if (!goodInfo) {
       return res.status(400).json({ message: "Good not found" });
@@ -389,6 +397,36 @@ export const createNewSpecie = async (req, res) => {
     });
     return res.status(200).json({ message: "New specie created successfully" });
   } catch (e) {
+    if (e?.original?.errno === 1062) {
+      return res.status(400).json({ message: `Duplicate entry` });
+    }
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const editSpecie = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { status, code, specie_id } = req.body;
+    const Specie = createDynamicModel("Specie", organization);
+    const specieInfo = await Specie.findOne({ where: { id: specie_id } });
+    if (!specieInfo) {
+      return res.status(400).json({ message: "Specie not found" });
+    }
+    const speciePlain = specieInfo.get({ plain: true });
+    if (status && speciePlain.status === "busy") {
+      return res.status(400).json({ message: "Specie is busy" });
+    }
+    await Specie.update(
+      {
+        status,
+        code,
+      },
+      { where: { id: specie_id } }
+    );
+    return res.status(200).json({ message: "Specie edited successfully" });
+  } catch (e) {
+    console.log(e);
     if (e?.original?.errno === 1062) {
       return res.status(400).json({ message: `Duplicate entry` });
     }

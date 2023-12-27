@@ -65,7 +65,10 @@ export const sendCode = async (req, res) => {
     }
     const organization_plain = organization.get({ plain: true });
     const Order = createDynamicModel("Order", organization_plain.id);
-    const order = await Order.findOne({ where: { id: order_id } });
+    const order = await Order.findOne({
+      attributes: ["id", "signed", "link_code", "last_sign_sms", "client"],
+      where: { id: order_id },
+    });
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
@@ -101,7 +104,7 @@ export const sendCode = async (req, res) => {
       { sign_code, message_id, last_sign_sms: new Date() },
       { where: { id: order_id } }
     );
-    res.status(200).json({ message: "SMS successfully sent" });
+    res.status(200).json({ message: "SMS code successfully sent" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

@@ -21,6 +21,60 @@ export const createNewKZClient = async (req, res) => {
   }
 };
 
+export const editKZCLient = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { client_id } = req.body;
+    const KZClient = createDynamicModel("KZClient", organization);
+    const uppercaseKeys = ["name", "second_name", "father_name"];
+    uppercaseKeys.forEach((item) => {
+      if (req.body?.[item]) {
+        req.body[item] = req.body[item].toUpperCase();
+      }
+    });
+    await KZClient.update({ ...req.body }, { where: { id: client_id } });
+    return res.status(200).json({ message: "Client edited successfully" });
+  } catch (e) {
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getAllClients = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { page, pageSize, sortBy, sortOrder, filter } = req.query;
+    const whereCondition = {};
+    if (filter) {
+      whereCondition[Op.and].push({ id: { [Op.like]: `%${filter}%` } });
+      whereCondition[Op.and].push({ name: { [Op.like]: `%${filter}%` } });
+    }
+    const orderOptions = [[sortBy, sortOrder]];
+    const Client = createDynamicModel("KZClient", organization);
+    const result = await Client.findAndCountAll({
+      where: whereCondition,
+      attributes: [
+        "id",
+        "cellphone",
+        "name",
+        "second_name",
+        "father_name",
+        "paper_person_id",
+      ],
+      order: orderOptions,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      group: `KZClient_${organization}.id`,
+    });
+    res.status(200).json({
+      clients: result.rows,
+      filteredTotalCount: result.count.length,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
 export const searchForKZClient = async (req, res) => {
   try {
     const { organization } = req.user;

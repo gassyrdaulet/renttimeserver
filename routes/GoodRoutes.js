@@ -13,13 +13,14 @@ import {
   deleteSpecie,
   editGood,
   deleteImage,
+  editSpecie,
 } from "../controllers/GoodController.js";
 import multer from "multer";
 import { CheckToken } from "../middleware/CheckToken.js";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
 import Joi from "joi";
 
-const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
+const namePattern = /^[a-zA-Zа-яА-ЯЁё0-9_\-+.()* ]+$/;
 
 const image_limits = {
   createNewGood: 1.1,
@@ -132,7 +133,7 @@ const validateEditGroup = (req, res, next) => {
   next();
 };
 const validateSpecie = (req, res, next) => {
-  const intKeys = ["code"];
+  const intKeys = ["code", "good_id"];
   for (let key of intKeys) {
     req.body[key] = parseInt(req.body[key]);
   }
@@ -146,6 +147,24 @@ const validateSpecie = (req, res, next) => {
     ),
     code: Joi.number().integer().max(9999999999).min(0).required(),
     good_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = productSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateEditSpecie = (req, res, next) => {
+  const intKeys = ["code", "specie_id"];
+  for (let key of intKeys) {
+    req.body[key] = parseInt(req.body[key]);
+  }
+  const productSchema = Joi.object({
+    status: Joi.string().valid("available", "broken", "repairing", "missing"),
+    code: Joi.number().integer().max(9999999999).min(0),
+    specie_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = productSchema.validate(req.body);
   if (validationResult.error) {
@@ -274,6 +293,13 @@ router.post(
   CheckOrganization,
   validateSpecie,
   createNewSpecie
+);
+router.post(
+  "/editspecie",
+  CheckToken,
+  CheckOrganization,
+  validateEditSpecie,
+  editSpecie
 );
 router.get(
   "/all",

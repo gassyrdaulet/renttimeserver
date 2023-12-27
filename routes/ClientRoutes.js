@@ -5,6 +5,8 @@ import {
   createNewKZClient,
   searchForKZClient,
   getClientByIdKZ,
+  getAllClients,
+  editKZCLient,
 } from "../controllers/ClientController.js";
 import Joi from "joi";
 import moment from "moment";
@@ -12,7 +14,7 @@ import moment from "moment";
 const router = new Router();
 
 const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
-const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
+const addressPattern = /^[a-zA-Zа-яА-Я0-9/\\\s,.'-]+$/;
 const numericPattern = /^\d+$/;
 const textPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
 
@@ -64,6 +66,48 @@ const validateNewKZClient = (req, res, next) => {
   }
   next();
 };
+const validateEditKZClient = (req, res, next) => {
+  const schema = Joi.object({
+    paper_person_id: Joi.string()
+      .min(12)
+      .max(12)
+      .pattern(numericPattern)
+      .required(),
+    paper_serial_number: Joi.string()
+      .min(8)
+      .max(10)
+      .pattern(numericPattern)
+      .required(),
+    paper_authority: Joi.string().valid("mvdrk").required(),
+    cellphone: Joi.string()
+      .trim()
+      .custom((value, helpers) => {
+        if (!isCISPhoneNumber(value)) {
+          return helpers.message("Invalid phone format");
+        }
+        return value;
+      })
+      .required(),
+    client_id: Joi.number().integer().max(9999999999).min(0).required(),
+    second_name: Joi.string().pattern(namePattern).max(50).required(),
+    name: Joi.string().max(50).pattern(namePattern).required(),
+    father_name: Joi.string().max(50).pattern(namePattern),
+    paper_givendate: Joi.string().required(),
+    gender: Joi.string().valid("male", "female", "undefined"),
+    address: Joi.string().pattern(addressPattern).max(200).required(),
+    email: Joi.string().email().max(50),
+    city: Joi.string().max(20).pattern(addressPattern).required(),
+    nationality: Joi.string().max(20).pattern(textPattern).required(),
+    born_region: Joi.string().max(30).pattern(addressPattern).required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 const validateDate = (req, res, next) => {
   const { paper_givendate } = req.body;
   if (!paper_givendate) {
@@ -105,6 +149,27 @@ const validateIdParam = (req, res, next) => {
   next();
 };
 
+const validateSelectParams = (req, res, next) => {
+  const intKeys = ["page", "pageSize"];
+  for (let key of intKeys) {
+    req.query[key] = parseInt(req.query[key]);
+  }
+  const selectParamsSchema = Joi.object({
+    page: Joi.number().integer().max(9999999999).min(0).required(),
+    pageSize: Joi.number().integer().max(100).min(0).required(),
+    sortBy: Joi.string().valid("create_date"),
+    sortOrder: Joi.string().valid("DESC", "ASC"),
+    filter: Joi.string().max(50).pattern(namePattern),
+  });
+  const validationResult = selectParamsSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+
 router.post(
   "/newclientkz",
   CheckToken,
@@ -112,6 +177,14 @@ router.post(
   validateNewKZClient,
   validateDate,
   createNewKZClient
+);
+router.post(
+  "/editclientkz",
+  CheckToken,
+  CheckOrganization,
+  validateEditKZClient,
+  validateDate,
+  editKZCLient
 );
 router.get(
   "/searchclientkz",
@@ -126,6 +199,13 @@ router.get(
   CheckOrganization,
   validateIdParam,
   getClientByIdKZ
+);
+router.get(
+  "/all",
+  CheckToken,
+  CheckOrganization,
+  validateSelectParams,
+  getAllClients
 );
 
 export default router;

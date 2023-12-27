@@ -4,6 +4,12 @@ import {
   getPaymentMethods,
   getUsers,
   newOrganization,
+  grantPrivilege,
+  deleteUser,
+  createNewMethod,
+  deleteMethod,
+  changeMethodOption,
+  editMethod,
 } from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
@@ -100,6 +106,86 @@ const validateNewUser = (req, res, next) => {
   }
   next();
 };
+const validateDeleteUser = (req, res, next) => {
+  const schema = Joi.object({
+    user_id: Joi.number().integer().min(0).max(9999999999).required(),
+  });
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateGrantPrivilege = (req, res, next) => {
+  const schema = Joi.object({
+    user_id: Joi.number().integer().min(0).max(9999999999).required(),
+    privilege: Joi.string()
+      .valid("admin", "courier", "manager", "debt")
+      .required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateMethodOptionChange = (req, res, next) => {
+  const schema = Joi.object({
+    method_id: Joi.number().integer().min(0).max(9999999999).required(),
+    option: Joi.string().valid("courier_access").required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateMethodIdParam = (req, res, next) => {
+  const schema = Joi.object({
+    method_id: Joi.number().integer().min(0).max(9999999999).required(),
+  });
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateNewMethod = (req, res, next) => {
+  const schema = Joi.object({
+    name: Joi.string().max(20).pattern(textPattern).required(),
+    courier_access: Joi.boolean(),
+    comission: Joi.number().precision(2).required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateEditMethod = (req, res, next) => {
+  const schema = Joi.object({
+    method_id: Joi.number().integer().min(0).max(9999999999).required(),
+    name: Joi.string().max(20).pattern(textPattern),
+    comission: Joi.number().precision(2),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 
 const router = new Router();
 
@@ -124,6 +210,48 @@ router.post(
   CheckOrganization,
   validateNewUser,
   addNewUser
+);
+router.delete(
+  "/deleteuser",
+  CheckToken,
+  CheckOrganization,
+  validateDeleteUser,
+  deleteUser
+);
+router.post(
+  "/grantprivilege",
+  CheckToken,
+  CheckOrganization,
+  validateGrantPrivilege,
+  grantPrivilege
+);
+router.post(
+  "/changemethodoption",
+  CheckToken,
+  CheckOrganization,
+  validateMethodOptionChange,
+  changeMethodOption
+);
+router.post(
+  "/editmethod",
+  CheckToken,
+  CheckOrganization,
+  validateEditMethod,
+  editMethod
+);
+router.delete(
+  "/deletemethod",
+  CheckToken,
+  CheckOrganization,
+  validateMethodIdParam,
+  deleteMethod
+);
+router.post(
+  "/createmethod",
+  CheckToken,
+  CheckOrganization,
+  validateNewMethod,
+  createNewMethod
 );
 
 export default router;

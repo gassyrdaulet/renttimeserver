@@ -7,12 +7,15 @@ import {
   getOrders,
   newPayment,
   newExtension,
-  newDelivery,
   finishOrder,
   newDiscount,
   cancelOrder,
   newPaymentForCourier,
   signPhysical,
+  sendLink,
+  deleteExtension,
+  deletePayment,
+  deleteDiscount,
 } from "../controllers/OrderController.js";
 import Joi from "joi";
 
@@ -49,31 +52,6 @@ const orderDeliverySchema = Joi.object({
     .required(),
   comment: Joi.string().pattern(addressPattern).max(50),
 });
-const orderDeliverySchema2 = Joi.object({
-  order_id: Joi.number().integer().max(9999999999).min(0).required(),
-  address: Joi.string().pattern(addressPattern).max(500).required(),
-  cellphone: Joi.string()
-    .trim()
-    .custom((value, helpers) => {
-      if (!isCISPhoneNumber(value)) {
-        return helpers.message("Invalid phone format");
-      }
-      return value;
-    })
-    .required(),
-  delivery_price_for_customer: Joi.number()
-    .integer()
-    .max(9999999999)
-    .min(0)
-    .required(),
-  delivery_price_for_deliver: Joi.number()
-    .integer()
-    .max(9999999999)
-    .min(0)
-    .required(),
-  comment: Joi.string().pattern(addressPattern).max(50),
-  direction: Joi.string().valid("here", "there").required(),
-});
 const finishOrderSchema = Joi.object({
   order_id: Joi.number().integer().min(0).max(9999999999).required(),
   is_debt: Joi.boolean().required(),
@@ -98,6 +76,7 @@ const orderSchema = Joi.object({
   goods: Joi.array().unique().items(orderGoodSchema).required(),
   deliveryHere: orderDeliverySchema,
   deliveryThere: orderDeliverySchema,
+  sendSMS: Joi.boolean().required(),
 });
 
 const validateOrder = (req, res, next) => {
@@ -144,6 +123,18 @@ const validateIdParam = (req, res, next) => {
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = idParamSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateDeleteByIdParam = (req, res, next) => {
+  const schema = Joi.object({
+    id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.query);
   if (validationResult.error) {
     return res
       .status(400)
@@ -227,23 +218,6 @@ const validateDiscount = (req, res, next) => {
   }
   next();
 };
-const validateDelivery = (req, res, next) => {
-  const intKeys = [
-    "order_id",
-    "delivery_price_for_customer",
-    "delivery_price_for_deliver",
-  ];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
-  const validationResult = orderDeliverySchema2.validate(req.body);
-  if (validationResult.error) {
-    return res
-      .status(400)
-      .json({ message: validationResult.error.details[0].message });
-  }
-  next();
-};
 const validateFinishOrder = (req, res, next) => {
   const intKeys = ["order_id"];
   for (let key of intKeys) {
@@ -262,7 +236,27 @@ const validateCancelOrder = (req, res, next) => {
   for (let key of intKeys) {
     req.body[key] = parseInt(req.body[key]);
   }
+
   const validationResult = cancelOrderSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+
+const validateSendLink = (req, res, next) => {
+  const schema = Joi.object({
+    order_id: Joi.number().integer().positive().max(9999999999).required(),
+    link_code: Joi.string()
+      .min(5)
+      .max(8)
+      .lowercase()
+      .regex(/^[a-zA-Z]+$/)
+      .required(),
+  });
+  const validationResult = schema.validate(req.body);
   if (validationResult.error) {
     return res
       .status(400)
@@ -288,6 +282,13 @@ router.post(
   newPayment
 );
 router.post(
+  "/sendlink",
+  CheckToken,
+  CheckOrganization,
+  validateSendLink,
+  sendLink
+);
+router.post(
   "/newpaymentcourier",
   CheckToken,
   CheckOrganization,
@@ -307,13 +308,6 @@ router.post(
   CheckOrganization,
   validateDiscount,
   newDiscount
-);
-router.post(
-  "/newdelivery",
-  CheckToken,
-  CheckOrganization,
-  validateDelivery,
-  newDelivery
 );
 router.post(
   "/finishorder",
@@ -349,6 +343,27 @@ router.post(
   CheckOrganization,
   validateIdParam,
   signPhysical
+);
+router.delete(
+  "/deleteextension",
+  CheckToken,
+  CheckOrganization,
+  validateDeleteByIdParam,
+  deleteExtension
+);
+router.delete(
+  "/deletepayment",
+  CheckToken,
+  CheckOrganization,
+  validateDeleteByIdParam,
+  deletePayment
+);
+router.delete(
+  "/deletediscount",
+  CheckToken,
+  CheckOrganization,
+  validateDeleteByIdParam,
+  deleteDiscount
 );
 
 export default router;

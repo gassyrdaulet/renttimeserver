@@ -9,10 +9,20 @@ import {
   refuseDelivery,
   sendCourier,
   finishDeliveries,
+  newDelivery,
+  editDelivery,
+  cancelDelivery,
 } from "../controllers/DeliveryController.js";
 
-const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
 const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
+const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
+
+const isCISPhoneNumber = (value) => {
+  // Регулярное выражение для проверки формата номера телефона Казахстана
+  const CISPhoneRegex =
+    /^((8|\+374|\+994|\+995|\+375|\+7|\+380|\+38|\+996|\+998|\+993)[\- ]?)?\(?\d{3,5}\)?[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}(([\- ]?\d{1})?[\- ]?\d{1})?$/;
+  return CISPhoneRegex.test(value);
+};
 
 const validateSelectParams = (req, res, next) => {
   const intKeys = ["page", "pageSize"];
@@ -106,6 +116,89 @@ const validateFinish = (req, res, next) => {
   }
   next();
 };
+const validateNewDelivery = (req, res, next) => {
+  const schema = Joi.object({
+    order_id: Joi.number().integer().max(9999999999).min(0).required(),
+    address: Joi.string().pattern(addressPattern).max(500).required(),
+    cellphone: Joi.string()
+      .trim()
+      .custom((value, helpers) => {
+        if (!isCISPhoneNumber(value)) {
+          return helpers.message("Invalid phone format");
+        }
+        return value;
+      })
+      .required(),
+    delivery_price_for_customer: Joi.number()
+      .integer()
+      .max(9999999999)
+      .min(0)
+      .required(),
+    delivery_price_for_deliver: Joi.number()
+      .integer()
+      .max(9999999999)
+      .min(0)
+      .required(),
+    comment: Joi.string().pattern(addressPattern).max(50),
+    direction: Joi.string().valid("here", "there").required(),
+  });
+  const intKeys = [
+    "order_id",
+    "delivery_price_for_customer",
+    "delivery_price_for_deliver",
+  ];
+  for (let key of intKeys) {
+    req.body[key] = parseInt(req.body[key]);
+  }
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateEditDelivery = (req, res, next) => {
+  const schema = Joi.object({
+    delivery_id: Joi.number().integer().max(9999999999).min(0).required(),
+    address: Joi.string().pattern(addressPattern).max(500).required(),
+    cellphone: Joi.string()
+      .trim()
+      .custom((value, helpers) => {
+        if (!isCISPhoneNumber(value)) {
+          return helpers.message("Invalid phone format");
+        }
+        return value;
+      })
+      .required(),
+    delivery_price_for_customer: Joi.number()
+      .integer()
+      .max(9999999999)
+      .min(0)
+      .required(),
+    delivery_price_for_deliver: Joi.number()
+      .integer()
+      .max(9999999999)
+      .min(0)
+      .required(),
+    comment: Joi.string().pattern(addressPattern).max(50),
+  });
+  const intKeys = [
+    "delivery_id",
+    "delivery_price_for_customer",
+    "delivery_price_for_deliver",
+  ];
+  for (let key of intKeys) {
+    req.body[key] = parseInt(req.body[key]);
+  }
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 
 const router = new Router();
 
@@ -145,10 +238,32 @@ router.post(
   refuseDelivery
 );
 router.post(
+  "/cancel",
+  CheckToken,
+  CheckOrganization,
+  validateDeliveryId,
+  cancelDelivery
+);
+router.post(
   "/finish",
   CheckToken,
   CheckOrganization,
   validateFinish,
   finishDeliveries
 );
+router.post(
+  "/new",
+  CheckToken,
+  CheckOrganization,
+  validateNewDelivery,
+  newDelivery
+);
+router.post(
+  "/edit",
+  CheckToken,
+  CheckOrganization,
+  validateEditDelivery,
+  editDelivery
+);
+
 export default router;

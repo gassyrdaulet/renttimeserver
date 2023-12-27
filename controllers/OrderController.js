@@ -24,6 +24,7 @@ export const createNewOrder = async (req, res) => {
       deliveryHere,
       deliveryThere,
       discountReason,
+      sendSMS,
     } = req.body;
     const Order = createDynamicModel("Order", organization);
     const OrderGood = createDynamicModel("OrderGood", organization);
@@ -89,12 +90,14 @@ export const createNewOrder = async (req, res) => {
         workshift_id,
         renttime,
       });
-      const message_id = await sendMessage(
-        clientInfo.cellphone,
-        "Здравствуйте! Вы оформляете заказ аренды. Перейдите по этой ссылке для подписания договора: " +
-          `${process.env.DOMEN}/contract/${organization}/${newOrder.id}/${link_code}`
-      );
-      await Order.update({ message_id }, { where: { id: newOrder.id } });
+      if (sendSMS) {
+        const message_id = await sendMessage(
+          clientInfo.cellphone,
+          "Здравствуйте! Вы оформляете заказ аренды. Перейдите по этой ссылке для подписания договора: " +
+            `${process.env.DOMEN}/contract/${organization}/${newOrder.id}/${link_code}`
+        );
+        await Order.update({ message_id }, { where: { id: newOrder.id } });
+      }
       if (discount)
         await Discount.create({
           order_id: newOrder.id,
@@ -594,57 +597,6 @@ export const newDiscount = async (req, res) => {
   }
 };
 
-export const newDelivery = async (req, res) => {
-  try {
-    const workshift_id = 1;
-    const excludedStatuses = ["finished", "status"];
-    const { organization, id: userId } = req.user;
-    const {
-      order_id,
-      address,
-      cellphone,
-      comment,
-      direction,
-      delivery_price_for_deliver,
-      delivery_price_for_customer,
-    } = req.body;
-    const OrderForCheck = createDynamicModel("Order", organization);
-    const orderForCheck = await OrderForCheck.findOne({
-      attributes: ["id"],
-      where: { id: order_id, for_increment: false },
-    });
-    if (!orderForCheck) {
-      return res.status(400).json({ message: "Order was not found" });
-    }
-    const Delivery = createDynamicModel("Delivery", organization);
-    const existingDelivery = await Delivery.findOne({
-      where: { order_id, status: { [Op.notIn]: excludedStatuses }, direction },
-    });
-    if (existingDelivery) {
-      return res
-        .status(400)
-        .json({ message: "This order already has an active delivery" });
-    }
-    const data = {
-      order_id,
-      address,
-      user_id: userId,
-      cellphone,
-      comment,
-      direction,
-      delivery_price_for_deliver,
-      delivery_price_for_customer,
-      workshift_id,
-      status: "new",
-    };
-    await Delivery.create(data);
-    res.status(200).json({ message: "New extension created succesfully" });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "Unknown internal error" });
-  }
-};
-
 export const finishOrder = async (req, res) => {
   try {
     const workshift_id = 1;
@@ -683,7 +635,7 @@ export const finishOrder = async (req, res) => {
         {
           model: OrderGood,
           as: "orderGoods",
-          attributes: ["saved_price"],
+          attributes: ["saved_price", "specie_id"],
           required: false,
         },
         {
@@ -695,7 +647,7 @@ export const finishOrder = async (req, res) => {
         {
           model: Payment,
           as: "payments",
-          attributes: ["amount"],
+          attributes: ["amount", "verified"],
           required: false,
         },
         {
@@ -799,6 +751,48 @@ export const finishOrder = async (req, res) => {
   }
 };
 
+export const sendLink = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { order_id, link_code } = req.body;
+    const Order = createDynamicModel("Order", organization);
+    const Client = createDynamicModel("KZClient", organization);
+    Order.belongsTo(Client, { foreignKey: "client", as: "clientInfo" });
+    const order = await Order.findOne({
+      attributes: ["id", "signed", "link_code"],
+      where: { id: order_id },
+      include: [
+        {
+          model: Client,
+          as: "clientInfo",
+          required: true,
+          attributes: ["cellphone"],
+        },
+      ],
+    });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    const order_plain = order.get({ plain: true });
+    if (order_plain.signed) {
+      return res.status(404).json({ message: "Contract already signed" });
+    }
+    if (order_plain.link_code !== link_code) {
+      return res.status(404).json({ message: "Link code is not correct" });
+    }
+    const message_id = await sendMessage(
+      order_plain.clientInfo.cellphone,
+      "Здравствуйте! Вы оформляете заказ аренды. Перейдите по этой ссылке для подписания договора: " +
+        `${process.env.DOMEN}/contract/${organization}/${order_id}/${link_code}`
+    );
+    await Order.update({ message_id }, { where: { id: order_id } });
+    res.status(200).json({ message: "SMS link successfully sent" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
 export const cancelOrder = async (req, res) => {
   try {
     const workshift_id = 1;
@@ -850,7 +844,7 @@ export const cancelOrder = async (req, res) => {
         moment(finished_date).diff(
           moment(orderInfoPlain.started_date),
           "miliseconds"
-        ) > orgInfoPlain
+        ) > orgInfoPlain.cancel_time_ms
       ) {
         return res.status(400).json({ message: "Cancel time is over" });
       }
@@ -919,6 +913,102 @@ export const signPhysical = async (req, res) => {
       { where: { id: order_id, for_increment: false } }
     );
     res.status(200).json({ message: "Order signed succesfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const deleteExtension = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { id } = req.query;
+    const Extension = createDynamicModel("Extension", organization);
+    const Order = createDynamicModel("Order", organization);
+    Extension.belongsTo(Order, { foreignKey: "order_id", as: "orderInfo" });
+    const info = await Extension.findOne({
+      where: { id },
+      include: [
+        {
+          model: Order,
+          required: true,
+          as: "orderInfo",
+          attributes: ["id"],
+          where: { for_increment: false },
+        },
+      ],
+    });
+    if (!info) {
+      return res
+        .status(400)
+        .json({ message: "Extension not found or in archive" });
+    }
+    await Extension.destroy({ where: { id } });
+    res.status(200).json({ message: "Extension deleted successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const deletePayment = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { id } = req.query;
+    const Payment = createDynamicModel("Payment", organization);
+    const Order = createDynamicModel("Order", organization);
+    Payment.belongsTo(Order, { foreignKey: "order_id", as: "orderInfo" });
+    const info = await Payment.findOne({
+      where: { id },
+      include: [
+        {
+          model: Order,
+          required: true,
+          as: "orderInfo",
+          attributes: ["id"],
+          where: { for_increment: false },
+        },
+      ],
+    });
+    if (!info) {
+      return res
+        .status(400)
+        .json({ message: "Payment not found or in archive" });
+    }
+    await Payment.destroy({ where: { id } });
+    res.status(200).json({ message: "Payment deleted successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const deleteDiscount = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { id } = req.query;
+    const Discount = createDynamicModel("Discount", organization);
+    const Order = createDynamicModel("Order", organization);
+    Discount.belongsTo(Order, { foreignKey: "order_id", as: "orderInfo" });
+    const info = await Discount.findOne({
+      where: { id },
+      include: [
+        {
+          model: Order,
+          required: true,
+          as: "orderInfo",
+          attributes: ["id"],
+          where: { for_increment: false },
+        },
+      ],
+    });
+    if (!info) {
+      return res
+        .status(400)
+        .json({ message: "Discount not found or in archive" });
+    }
+    await Discount.destroy({ where: { id } });
+    res.status(200).json({ message: "Discount deleted successfully" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });
