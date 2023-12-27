@@ -13,7 +13,7 @@ import moment from "moment";
 
 const router = new Router();
 
-const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
+const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
 const addressPattern = /^[a-zA-Zа-яА-Я0-9/\\\s,.'-]+$/;
 const numericPattern = /^\d+$/;
 const textPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;

@@ -15,7 +15,7 @@ import {
 } from "../controllers/DeliveryController.js";
 
 const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
-const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
+const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
 
 const isCISPhoneNumber = (value) => {
   // Регулярное выражение для проверки формата номера телефона Казахстана

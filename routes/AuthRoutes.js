@@ -9,7 +9,7 @@ import { CheckOrganization } from "../middleware/CheckOrganization.js";
 import Joi from "joi";
 
 const router = new Router();
-const namePattern = /^[a-zA-Zа-яА-Я0-9_\-+.()* ]+$/;
+const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
 
 const isCISPhoneNumber = (value) => {
   // Регулярное выражение для проверки формата номера телефона Казахстана

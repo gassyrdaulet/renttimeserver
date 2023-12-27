@@ -20,7 +20,7 @@ import { CheckToken } from "../middleware/CheckToken.js";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
 import Joi from "joi";
 
-const namePattern = /^[a-zA-Zа-яА-ЯЁё0-9_\-+.()* ]+$/;
+const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
 
 const image_limits = {
   createNewGood: 1.1,
