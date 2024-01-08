@@ -7,23 +7,24 @@ import {
   getClientByIdKZ,
   getAllClients,
   editKZCLient,
+  getDebts,
+  newDebt,
+  deleteClient,
+  closeDebt,
 } from "../controllers/ClientController.js";
 import Joi from "joi";
 import moment from "moment";
+import {
+  namePattern,
+  addressPattern,
+  numericPattern,
+  textPattern,
+  isCISPhoneNumber,
+  parseObjectInt,
+  trimObject,
+} from "./Patterns.js";
 
 const router = new Router();
-
-const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
-const addressPattern = /^[a-zA-Zа-яА-Я0-9/\\\s,.'-]+$/;
-const numericPattern = /^\d+$/;
-const textPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
-
-const isCISPhoneNumber = (value) => {
-  // Регулярное выражение для проверки формата номера телефона Казахстана
-  const CISPhoneRegex =
-    /^((8|\+374|\+994|\+995|\+375|\+7|\+380|\+38|\+996|\+998|\+993)[\- ]?)?\(?\d{3,5}\)?[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}(([\- ]?\d{1})?[\- ]?\d{1})?$/;
-  return CISPhoneRegex.test(value);
-};
 
 const kzClientSchema = Joi.object({
   paper_person_id: Joi.string()
@@ -58,6 +59,7 @@ const kzClientSchema = Joi.object({
   born_region: Joi.string().max(30).pattern(addressPattern).required(),
 });
 const validateNewKZClient = (req, res, next) => {
+  trimObject(["second_name", "name", "father_name"], req.body);
   const validationResult = kzClientSchema.validate(req.body);
   if (validationResult.error) {
     return res
@@ -67,6 +69,7 @@ const validateNewKZClient = (req, res, next) => {
   next();
 };
 const validateEditKZClient = (req, res, next) => {
+  trimObject(["second_name", "name", "father_name"], req.body);
   const schema = Joi.object({
     paper_person_id: Joi.string()
       .min(12)
@@ -124,10 +127,11 @@ const validateDate = (req, res, next) => {
   next();
 };
 const validateSearchText = (req, res, next) => {
-  const searchSchema = Joi.object({
-    searchText: Joi.string().pattern(namePattern).max(20).required(),
+  trimObject(["searchText"], req.query);
+  const schema = Joi.object({
+    searchText: Joi.string().pattern(textPattern).max(20).required(),
   });
-  const validationResult = searchSchema.validate(req.query);
+  const validationResult = schema.validate(req.query);
   if (validationResult.error) {
     return res
       .status(400)
@@ -136,11 +140,25 @@ const validateSearchText = (req, res, next) => {
   next();
 };
 const validateIdParam = (req, res, next) => {
-  req.query.client_id = parseInt(req.query?.client_id);
-  const idParamSchema = Joi.object({
+  parseObjectInt(["client_id"], req.query);
+  const schema = Joi.object({
     client_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
-  const validationResult = idParamSchema.validate(req.query);
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+
+const validateCloseDebt = (req, res, next) => {
+  parseObjectInt(["debt_id"], req.query);
+  const schema = Joi.object({
+    debt_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.query);
   if (validationResult.error) {
     return res
       .status(400)
@@ -150,18 +168,45 @@ const validateIdParam = (req, res, next) => {
 };
 
 const validateSelectParams = (req, res, next) => {
-  const intKeys = ["page", "pageSize"];
-  for (let key of intKeys) {
-    req.query[key] = parseInt(req.query[key]);
-  }
+  parseObjectInt(["page", "pageSize"], req.query);
   const selectParamsSchema = Joi.object({
     page: Joi.number().integer().max(9999999999).min(0).required(),
     pageSize: Joi.number().integer().max(100).min(0).required(),
-    sortBy: Joi.string().valid("create_date"),
+    sortBy: Joi.string().valid("create_date", "debts_sum", "second_name"),
     sortOrder: Joi.string().valid("DESC", "ASC"),
     filter: Joi.string().max(50).pattern(namePattern),
   });
   const validationResult = selectParamsSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+
+const validateIINparam = (req, res, next) => {
+  const schema = Joi.object({
+    iin: Joi.string().min(12).max(12).pattern(numericPattern).required(),
+  });
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+
+const validateDebt = (req, res, next) => {
+  parseObjectInt(["client_id", "amount"], req.body);
+  const schema = Joi.object({
+    date: Joi.date(),
+    client_id: Joi.number().integer().max(9999999999).min(0).required(),
+    amount: Joi.number().integer().max(9999999999).min(0).required(),
+    comment: Joi.string().pattern(textPattern).max(150),
+  });
+  const validationResult = schema.validate(req.body);
   if (validationResult.error) {
     return res
       .status(400)
@@ -200,12 +245,34 @@ router.get(
   validateIdParam,
   getClientByIdKZ
 );
+router.delete(
+  "/deleteclient",
+  CheckToken,
+  CheckOrganization,
+  validateIdParam,
+  deleteClient
+);
 router.get(
   "/all",
   CheckToken,
   CheckOrganization,
   validateSelectParams,
   getAllClients
+);
+router.get(
+  "/getdebts",
+  CheckToken,
+  CheckOrganization,
+  validateIINparam,
+  getDebts
+);
+router.post("/newdebt", CheckToken, CheckOrganization, validateDebt, newDebt);
+router.post(
+  "/closedebt",
+  CheckToken,
+  CheckOrganization,
+  validateCloseDebt,
+  closeDebt
 );
 
 export default router;

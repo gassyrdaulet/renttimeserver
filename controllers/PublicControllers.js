@@ -56,6 +56,7 @@ export const confirmCode = async (req, res) => {
 
 export const sendCode = async (req, res) => {
   try {
+    const tzname = "Asia/Almaty";
     const { organization_id, order_id, contract_code } = req.query;
     const organization = await Organization.findOne({
       where: { id: organization_id },
@@ -85,6 +86,7 @@ export const sendCode = async (req, res) => {
     ) {
       return res.status(404).json({
         message: `Try next time at ${momentjs(order_plain.last_sign_sms)
+          .tz(tzname)
           .add(SMS_EVERY_MS, "milliseconds")
           .format("DD.MM.yyyy HH:mm:ss")}`,
       });

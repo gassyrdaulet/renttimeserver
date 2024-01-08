@@ -18,16 +18,12 @@ import {
   deleteDiscount,
 } from "../controllers/OrderController.js";
 import Joi from "joi";
-
-const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
-const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
-
-const isCISPhoneNumber = (value) => {
-  // Регулярное выражение для проверки формата номера телефона Казахстана
-  const CISPhoneRegex =
-    /^((8|\+374|\+994|\+995|\+375|\+7|\+380|\+38|\+996|\+998|\+993)[\- ]?)?\(?\d{3,5}\)?[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}(([\- ]?\d{1})?[\- ]?\d{1})?$/;
-  return CISPhoneRegex.test(value);
-};
+import {
+  addressPattern,
+  namePattern,
+  isCISPhoneNumber,
+  parseObjectInt,
+} from "./Patterns.js";
 
 const orderDeliverySchema = Joi.object({
   address: Joi.string().pattern(addressPattern).max(500).required(),
@@ -87,16 +83,19 @@ const validateOrder = (req, res, next) => {
   next();
 };
 const validateSelectParams = (req, res, next) => {
-  const intKeys = ["page", "pageSize"];
-  for (let key of intKeys) {
-    req.query[key] = parseInt(req.query[key]);
-  }
+  parseObjectInt(["page", "pageSize"], req.query);
   req.query.archive = req.query.archive === "true";
   const selectParamsSchema = Joi.object({
     page: Joi.number().integer().max(9999999999).min(0).required(),
     pageSize: Joi.number().integer().max(100).min(0).required(),
     sortBy: Joi.string()
-      .valid("id", "created_date", "finished_date", "started_date")
+      .valid(
+        "id",
+        "created_date",
+        "finished_date",
+        "started_date",
+        "planned_date"
+      )
       .required(),
     sortOrder: Joi.string().valid("DESC", "ASC").required(),
     archive: Joi.boolean().required(),
@@ -118,7 +117,7 @@ const validateSelectParams = (req, res, next) => {
   next();
 };
 const validateIdParam = (req, res, next) => {
-  req.query.order_id = parseInt(req.query?.order_id);
+  parseObjectInt(["order_id"], req.query);
   const idParamSchema = Joi.object({
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
@@ -143,10 +142,7 @@ const validateDeleteByIdParam = (req, res, next) => {
   next();
 };
 const validatePayment = (req, res, next) => {
-  const intKeys = ["order_id", "amount", "payment_method_id"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(["order_id", "amount", "payment_method_id"], req.body);
   const paymentSchema = Joi.object({
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
     amount: Joi.number().integer().max(9999999999).min(1).required(),
@@ -163,10 +159,10 @@ const validatePayment = (req, res, next) => {
   next();
 };
 const validatePaymentForCourier = (req, res, next) => {
-  const intKeys = ["order_id", "delivery_id", "amount", "payment_method_id"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(
+    ["order_id", "delivery_id", "amount", "payment_method_id"],
+    req.body
+  );
   const paymentSchema = Joi.object({
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
     delivery_id: Joi.number().integer().max(9999999999).min(0).required(),
@@ -182,10 +178,7 @@ const validatePaymentForCourier = (req, res, next) => {
   next();
 };
 const validateExtension = (req, res, next) => {
-  const intKeys = ["order_id", "renttime"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(["order_id", "renttime"], req.body);
   const extensionSchema = Joi.object({
     date: Joi.date(),
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
@@ -200,10 +193,7 @@ const validateExtension = (req, res, next) => {
   next();
 };
 const validateDiscount = (req, res, next) => {
-  const intKeys = ["order_id", "amount"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(["order_id", "amount"], req.body);
   const extensionSchema = Joi.object({
     date: Joi.date(),
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
@@ -219,10 +209,7 @@ const validateDiscount = (req, res, next) => {
   next();
 };
 const validateFinishOrder = (req, res, next) => {
-  const intKeys = ["order_id"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(["order_id"], req.body);
   const validationResult = finishOrderSchema.validate(req.body);
   if (validationResult.error) {
     return res
@@ -232,11 +219,7 @@ const validateFinishOrder = (req, res, next) => {
   next();
 };
 const validateCancelOrder = (req, res, next) => {
-  const intKeys = ["order_id"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
-
+  parseObjectInt(["order_id"], req.body);
   const validationResult = cancelOrderSchema.validate(req.body);
   if (validationResult.error) {
     return res

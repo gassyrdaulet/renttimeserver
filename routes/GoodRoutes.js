@@ -14,13 +14,19 @@ import {
   editGood,
   deleteImage,
   editSpecie,
+  getAllSpecies,
+  searchSpecie,
 } from "../controllers/GoodController.js";
 import multer from "multer";
 import { CheckToken } from "../middleware/CheckToken.js";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
 import Joi from "joi";
-
-const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
+import {
+  namePattern,
+  parseObjectInt,
+  textPattern,
+  trimObject,
+} from "./Patterns.js";
 
 const image_limits = {
   createNewGood: 1.1,
@@ -42,17 +48,17 @@ const upload = multer({
   limits: { fieldSize: image_limits["createNewGood"] * 1024 * 1024 },
 });
 const validateProduct = (req, res, next) => {
-  const intKeys = [
-    "group_id",
-    "price_per_minute",
-    "price_per_hour",
-    "price_per_day",
-    "price_per_month",
-    "compensation_price",
-  ];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(
+    [
+      "group_id",
+      "price_per_minute",
+      "price_per_hour",
+      "price_per_day",
+      "price_per_month",
+      "compensation_price",
+    ],
+    req.body
+  );
   const productSchema = Joi.object({
     image: Joi.allow(null),
     name: Joi.string().max(50).required().pattern(namePattern),
@@ -76,17 +82,17 @@ const validateProduct = (req, res, next) => {
   next();
 };
 const validateEditGood = (req, res, next) => {
-  const intKeys = [
-    "group_id",
-    "price_per_minute",
-    "price_per_hour",
-    "price_per_day",
-    "price_per_month",
-    "compensation_price",
-  ];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(
+    [
+      "group_id",
+      "price_per_minute",
+      "price_per_hour",
+      "price_per_day",
+      "price_per_month",
+      "compensation_price",
+    ],
+    req.body
+  );
   const schema = Joi.object({
     image: Joi.allow(null),
     name: Joi.string().max(50).pattern(namePattern),
@@ -119,6 +125,7 @@ const validateNewGroup = (req, res, next) => {
   next();
 };
 const validateEditGroup = (req, res, next) => {
+  parseObjectInt(["code", "good_id"], req.body);
   req.body.group_id = parseInt(req.body?.group_id);
   const groupSchema = Joi.object({
     group_id: Joi.number().integer().max(9999999999).min(0).required(),
@@ -133,10 +140,7 @@ const validateEditGroup = (req, res, next) => {
   next();
 };
 const validateSpecie = (req, res, next) => {
-  const intKeys = ["code", "good_id"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(["code", "good_id"], req.body);
   const productSchema = Joi.object({
     status: Joi.string().valid(
       "available",
@@ -157,10 +161,7 @@ const validateSpecie = (req, res, next) => {
   next();
 };
 const validateEditSpecie = (req, res, next) => {
-  const intKeys = ["code", "specie_id"];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(["code", "specie_id"], req.body);
   const productSchema = Joi.object({
     status: Joi.string().valid("available", "broken", "repairing", "missing"),
     code: Joi.number().integer().max(9999999999).min(0),
@@ -175,7 +176,7 @@ const validateEditSpecie = (req, res, next) => {
   next();
 };
 const validateIdParam = (req, res, next) => {
-  req.query.good_id = parseInt(req.query?.good_id);
+  parseObjectInt(["good_id"], req.query);
   const idParamSchema = Joi.object({
     good_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
@@ -188,7 +189,7 @@ const validateIdParam = (req, res, next) => {
   next();
 };
 const validateGoodIdParam = (req, res, next) => {
-  req.query.good_id = parseInt(req.query?.good_id);
+  parseObjectInt(["good_id"], req.query);
   const schema = Joi.object({
     good_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
@@ -201,7 +202,7 @@ const validateGoodIdParam = (req, res, next) => {
   next();
 };
 const validateSpecieIdParam = (req, res, next) => {
-  req.query.specie_id = parseInt(req.query?.specie_id);
+  parseObjectInt(["specie_id"], req.query);
   const schema = Joi.object({
     specie_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
@@ -214,7 +215,7 @@ const validateSpecieIdParam = (req, res, next) => {
   next();
 };
 const validateIdBody = (req, res, next) => {
-  req.body.id = parseInt(req.body?.id);
+  parseObjectInt("id", req.bopdy);
   const idSchema = Joi.object({
     id: Joi.number().integer().max(9999999999).min(0).required(),
   });
@@ -227,19 +228,55 @@ const validateIdBody = (req, res, next) => {
   next();
 };
 const validateSelectParams = (req, res, next) => {
-  const intKeys = ["page", "pageSize", "group_id"];
-  for (let key of intKeys) {
-    req.query[key] = parseInt(req.query[key]);
-  }
+  trimObject(["filter"], req.query);
+  parseObjectInt(["page", "pageSize", "group_id"], req.query);
   const selectParamsSchema = Joi.object({
     page: Joi.number().integer().max(9999999999).min(0).required(),
     pageSize: Joi.number().integer().max(100).min(0).required(),
-    sortBy: Joi.string().valid("name"),
-    sortOrder: Joi.string().valid("DESC", "ASC"),
+    sortBy: Joi.string().valid("name", "id").required(),
+    sortOrder: Joi.string().valid("DESC", "ASC").required(),
     group_id: Joi.number().integer().max(9999999999).min(-2).required(),
     filter: Joi.string().max(50).pattern(namePattern),
   });
   const validationResult = selectParamsSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateGetAllSpecies = (req, res, next) => {
+  trimObject(["filter"], req.query);
+  parseObjectInt(["page", "pageSize"], req.query);
+  const selectParamsSchema = Joi.object({
+    page: Joi.number().integer().max(9999999999).min(0).required(),
+    pageSize: Joi.number().integer().max(100).min(0).required(),
+    sortBy: Joi.string().valid("code", "id", "good", "status").required(),
+    sortOrder: Joi.string().valid("DESC", "ASC").required(),
+    filter: Joi.string().max(50).pattern(namePattern),
+    status: Joi.string().valid(
+      "available",
+      "missing",
+      "repairing",
+      "broken",
+      "busy"
+    ),
+  });
+  const validationResult = selectParamsSchema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateSearchSpecie = (req, res, next) => {
+  trimObject(["filter"], req.query);
+  const schema = Joi.object({
+    filter: Joi.string().pattern(textPattern).max(20).required(),
+  });
+  const validationResult = schema.validate(req.query);
   if (validationResult.error) {
     return res
       .status(400)
@@ -309,6 +346,13 @@ router.get(
   getAllGoods
 );
 router.get(
+  "/getallspecies",
+  CheckToken,
+  CheckOrganization,
+  validateGetAllSpecies,
+  getAllSpecies
+);
+router.get(
   "/species",
   CheckToken,
   CheckOrganization,
@@ -342,6 +386,13 @@ router.delete(
   CheckOrganization,
   validateGoodIdParam,
   deleteImage
+);
+router.get(
+  "/searchspecie",
+  CheckToken,
+  CheckOrganization,
+  validateSearchSpecie,
+  searchSpecie
 );
 router.get("/allgroups", CheckToken, CheckOrganization, getAllGroups);
 

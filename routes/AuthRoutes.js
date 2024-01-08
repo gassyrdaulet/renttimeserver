@@ -7,18 +7,12 @@ import {
 import { CheckToken } from "../middleware/CheckToken.js";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
 import Joi from "joi";
+import { namePattern, isCISPhoneNumber, trimObject } from "./Patterns.js";
 
 const router = new Router();
-const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
-
-const isCISPhoneNumber = (value) => {
-  // Регулярное выражение для проверки формата номера телефона Казахстана
-  const CISPhoneRegex =
-    /^((8|\+374|\+994|\+995|\+375|\+7|\+380|\+38|\+996|\+998|\+993)[\- ]?)?\(?\d{3,5}\)?[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}(([\- ]?\d{1})?[\- ]?\d{1})?$/;
-  return CISPhoneRegex.test(value);
-};
 
 function validateNewAccount(req, res, next) {
+  trimObject(["second_name", "name", "father_name"], req.body);
   const schema = Joi.object({
     cellphone: Joi.string()
       .trim()

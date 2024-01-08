@@ -15,8 +15,7 @@ import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
 import moment from "moment";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
-
-const textPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
+import { addressPattern, numericPattern, textPattern } from "./Patterns.js";
 
 const checkWorkTime = (req, res, next) => {
   const { start_work, end_work } = req.body;
@@ -40,8 +39,8 @@ const checkWorkTime = (req, res, next) => {
 function validateNewOrganization(req, res, next) {
   const schema = Joi.object({
     name: Joi.string().pattern(textPattern).max(30).required(),
-    address: Joi.string().pattern(textPattern).max(50).required(),
-    city: Joi.string().max(20).pattern(textPattern).required(),
+    address: Joi.string().pattern(addressPattern).max(50).required(),
+    city: Joi.string().max(20).pattern(addressPattern).required(),
     region: Joi.string().valid("kz"),
     start_work: Joi.string().required(),
     end_work: Joi.string().required(),
@@ -50,7 +49,7 @@ function validateNewOrganization(req, res, next) {
     bank_company_name: Joi.string().pattern(textPattern).max(20).required(),
     company_name: Joi.string().pattern(textPattern).max(20).required(),
     kz_paper_bik: Joi.string().pattern(textPattern).max(12).required(),
-    kz_paper_bin: Joi.string().max(12).pattern(textPattern).required(),
+    kz_paper_bin: Joi.string().max(12).pattern(numericPattern).required(),
     kz_paper_iik: Joi.string().max(20).pattern(textPattern).required(),
   });
   const { error } = schema.validate(req.body);

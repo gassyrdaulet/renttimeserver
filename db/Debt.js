@@ -37,6 +37,11 @@ const initDebt = (sequelize) => {
         allowNull: false,
         unsigned: true,
       },
+      closed: {
+        type: DataTypes.BOOLEAN(),
+        allowNull: false,
+        defaultValue: false,
+      },
     },
     {
       indexes: [

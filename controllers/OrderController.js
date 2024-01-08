@@ -1,4 +1,4 @@
-import { createDynamicModel, User, Organization } from "../db/db.js";
+import sequelize, { createDynamicModel, User, Organization } from "../db/db.js";
 import { Op } from "sequelize";
 import { controlOrdersCount } from "../service/ClientService.js";
 import { sendMessage } from "../service/SMSService.js";
@@ -7,6 +7,7 @@ import { customAlphabet } from "nanoid";
 import moment from "moment";
 
 const { TARIFF_KEYS, TARIFF_MOMENT_KEYS, MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
+const smsLink = `Договор аренды: ${process.env.DOMEN}/contract/`;
 
 export const createNewOrder = async (req, res) => {
   try {
@@ -50,6 +51,9 @@ export const createNewOrder = async (req, res) => {
         tariff,
         workshift_id,
         started_date,
+        planned_date: moment(started_date)
+          .add(renttime, TARIFF_MOMENT_KEYS[tariff])
+          .toDate(),
         comment,
         link_code,
         sign_code,
@@ -93,8 +97,7 @@ export const createNewOrder = async (req, res) => {
       if (sendSMS) {
         const message_id = await sendMessage(
           clientInfo.cellphone,
-          "Здравствуйте! Вы оформляете заказ аренды. Перейдите по этой ссылке для подписания договора: " +
-            `${process.env.DOMEN}/contract/${organization}/${newOrder.id}/${link_code}`
+          `${smsLink}${organization}/${newOrder.id}/${link_code}`
         );
         await Order.update({ message_id }, { where: { id: newOrder.id } });
       }
@@ -138,7 +141,6 @@ export const createNewOrder = async (req, res) => {
       await Order.destroy({ where: { id: newOrder.id } });
       return res.status(400).json({ message: e.message });
     }
-    await controlOrdersCount(1, organization, client);
     res.status(200).json({ message: "New order created successfully" });
   } catch (e) {
     console.log(e);
@@ -173,6 +175,7 @@ export const getOrders = async (req, res) => {
     const whereCondition = {
       [Op.and]: [{ for_increment: false }],
     };
+    const whereConditionForClient = {};
     if (
       Math.abs(moment(firstDate).diff(moment(secondDate), "days")) >
       MAXIMUM_ARCHIVE_RANGE_DAYS
@@ -190,9 +193,36 @@ export const getOrders = async (req, res) => {
       });
     }
     if (filter) {
-      whereCondition[Op.and].push({ id: { [Op.like]: `%${filter}%` } });
+      if (isNaN(parseInt(filter))) {
+        whereConditionForClient[Op.or] = [];
+        const everyWord = filter.split(" ");
+        const everyWordFiltered = everyWord.filter((i) => i !== "");
+        const filterOptions = everyWordFiltered.map((item) => ({
+          [Op.like]: `%${item}%`,
+        }));
+        whereConditionForClient[Op.or].push({ id: { [Op.or]: filterOptions } });
+        whereConditionForClient[Op.or].push({
+          name: { [Op.or]: filterOptions },
+        });
+        whereConditionForClient[Op.or].push({
+          second_name: { [Op.or]: filterOptions },
+        });
+        whereConditionForClient[Op.or].push({
+          father_name: { [Op.or]: filterOptions },
+        });
+        whereConditionForClient[Op.or].push({
+          paper_person_id: { [Op.or]: filterOptions },
+        });
+        whereConditionForClient[Op.or].push({
+          paper_serial_number: { [Op.or]: filterOptions },
+        });
+        whereConditionForClient[Op.or].push({
+          cellphone: { [Op.or]: filterOptions },
+        });
+      } else {
+        whereCondition[Op.and].push({ id: { [Op.like]: `%${filter}%` } });
+      }
     }
-    const orderOptions = [[sortBy, sortOrder]];
     const Order = createDynamicModel(
       archive ? "ArchiveOrder" : "Order",
       organization
@@ -202,11 +232,9 @@ export const getOrders = async (req, res) => {
     const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
     const Extension = createDynamicModel("Extension", organization);
     const Discount = createDynamicModel("Discount", organization);
+    const Client = createDynamicModel("KZClient", organization);
     const OrderGood = createDynamicModel("OrderGood", organization);
     const Payment = createDynamicModel("Payment", organization);
-    const totalCount = await OrderForCount.count({
-      where: { for_increment: false },
-    });
     Order.hasMany(OrderGood, { foreignKey: "order_id", as: "orderGoods" });
     Order.hasMany(Extension, { foreignKey: "order_id", as: "extensions" });
     Order.hasMany(Discount, { foreignKey: "order_id", as: "discounts" });
@@ -216,13 +244,29 @@ export const getOrders = async (req, res) => {
       foreignKey: "order_id",
       as: "archiveDeliveries",
     });
+    Order.belongsTo(Client, {
+      foreignKey: "client",
+      as: "clientInfo",
+    });
+    const orderOptions = [[sortBy, sortOrder]];
+    const totalCount = await OrderForCount.count({
+      where: { for_increment: false },
+    });
     const result = await Order.findAndCountAll({
-      attributes: { exclude: excludedAttributesOrders },
+      attributes: {
+        exclude: excludedAttributesOrders,
+      },
       where: whereCondition,
-      order: orderOptions,
       limit: pageSize,
       offset: (page - 1) * pageSize,
       include: [
+        {
+          model: Client,
+          as: "clientInfo",
+          attributes: ["id", "name", "second_name", "father_name"],
+          required: true,
+          where: whereConditionForClient,
+        },
         {
           model: OrderGood,
           as: "orderGoods",
@@ -260,6 +304,7 @@ export const getOrders = async (req, res) => {
           required: false,
         },
       ],
+      order: orderOptions,
       group: archive
         ? `ArchiveOrder_${organization}.id`
         : `Order_${organization}.id`,
@@ -270,7 +315,7 @@ export const getOrders = async (req, res) => {
       totalCount,
     });
   } catch (e) {
-    console.log(e);
+    console.log(e.message);
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
@@ -541,7 +586,7 @@ export const newExtension = async (req, res) => {
     const { order_id, renttime, date } = req.body;
     const OrderForCheck = createDynamicModel("Order", organization);
     const orderForCheck = await OrderForCheck.findOne({
-      attributes: ["id"],
+      attributes: ["id", "planned_date", "tariff"],
       where: { id: order_id, for_increment: false },
     });
     if (!orderForCheck) {
@@ -557,7 +602,17 @@ export const newExtension = async (req, res) => {
     if (date) {
       data.date = date;
     }
+    const orderPlain = orderForCheck.get({ plain: true });
     await Extension.create(data);
+    await OrderForCheck.update(
+      {
+        planned_date: moment(orderPlain.planned_date).add(
+          renttime,
+          TARIFF_MOMENT_KEYS[orderPlain.tariff]
+        ),
+      },
+      { where: { id: order_id } }
+    );
     res.status(200).json({ message: "New extension created succesfully" });
   } catch (e) {
     console.log(e);
@@ -731,6 +786,11 @@ export const finishOrder = async (req, res) => {
     await Order.update({ finished_date }, { where: { id: order_id } });
     const finished_order = await Order.findOne({ where: { id: order_id } });
     await ArchiveOrder.create(finished_order.get({ plain: true }));
+    await controlOrdersCount(
+      1,
+      organization,
+      finished_order.get({ plain: true }).client
+    );
     await Order.destroy({ where: { id: order_id } });
     await Order.destroy({ where: { for_increment: true } });
     await Order.create({
@@ -782,8 +842,7 @@ export const sendLink = async (req, res) => {
     }
     const message_id = await sendMessage(
       order_plain.clientInfo.cellphone,
-      "Здравствуйте! Вы оформляете заказ аренды. Перейдите по этой ссылке для подписания договора: " +
-        `${process.env.DOMEN}/contract/${organization}/${order_id}/${link_code}`
+      `${smsLink}${organization}/${order_id}/${link_code}`
     );
     await Order.update({ message_id }, { where: { id: order_id } });
     res.status(200).json({ message: "SMS link successfully sent" });

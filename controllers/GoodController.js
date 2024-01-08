@@ -1,5 +1,5 @@
 import { createDynamicModel } from "../db/db.js";
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
 import {
   getImageResolution,
   createThumbnailFromBuffer,
@@ -42,6 +42,92 @@ export const getAllGoods = async (req, res) => {
     });
     res.status(200).json({
       goods: result.rows,
+      totalCount,
+      filteredTotalCount: result.count.length,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const searchSpecie = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { filter } = req.query;
+    const everyWord = filter.split(" ");
+    const everyWordFiltered = everyWord.filter((i) => i !== "");
+    const filterOptions = everyWordFiltered.map((item) => ({
+      [Op.like]: `%${item}%`,
+    }));
+    const Specie = createDynamicModel("Specie", organization);
+    const Good = createDynamicModel("Good", organization);
+    Specie.belongsTo(Good, { foreignKey: "good", as: "goodInfo" });
+    const result = await Specie.findAll({
+      limit: 50,
+      include: [
+        {
+          model: Good,
+          as: "goodInfo",
+          required: true,
+        },
+      ],
+      where: {
+        [Op.or]: [
+          {
+            id: { [Op.or]: filterOptions },
+          },
+          {
+            code: { [Op.or]: filterOptions },
+          },
+          {
+            order: { [Op.or]: filterOptions },
+          },
+        ],
+      },
+    });
+    res.send(result);
+  } catch (e) {
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getAllSpecies = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { page, pageSize, sortBy, sortOrder, filter, status } = req.query;
+    const whereCondition = {};
+    if (filter) {
+      whereCondition[Op.or] = [
+        { code: { [Op.like]: `%${filter}%` } },
+        { id: { [Op.like]: `%${filter}%` } },
+      ];
+    }
+    if (status) {
+      whereCondition[Op.and] = { status };
+    }
+    const orderOptions = [[sortBy, sortOrder]];
+    const Good = createDynamicModel("Good", organization);
+    const Specie = createDynamicModel("Specie", organization);
+    Specie.belongsTo(Good, { foreignKey: "good", as: "goodInfo" });
+    const totalCount = await Specie.count();
+    const result = await Specie.findAndCountAll({
+      where: whereCondition,
+      order: orderOptions,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      include: [
+        {
+          model: Good,
+          as: "goodInfo",
+          attributes: ["id", "name"],
+          required: true,
+        },
+      ],
+      group: `Specie_${organization}.id`,
+    });
+    res.status(200).json({
+      species: result.rows,
       totalCount,
       filteredTotalCount: result.count.length,
     });

@@ -20,6 +20,7 @@ export async function sendMessage(number, text) {
   const response = await SMSAxios.post("message/SendSMSMessage", {
     recipient: formatted,
     text,
+    from: "RentTime",
   });
   if (!response?.data) {
     throw new Error("SMS is not available at the moment");

@@ -43,6 +43,10 @@ const initOrder = (sequelize) => {
         type: DataTypes.DATE,
         allowNull: false,
       },
+      planned_date: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
       finished_date: {
         type: DataTypes.DATE,
       },

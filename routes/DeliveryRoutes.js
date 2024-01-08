@@ -13,24 +13,17 @@ import {
   editDelivery,
   cancelDelivery,
 } from "../controllers/DeliveryController.js";
-
-const addressPattern = /^[a-zA-Zа-яА-Я0-9\s,.'-]+$/;
-const namePattern = /^[a-zA-Zа-яА-Я0-9ӘәІіҢңҒғҮүҰұҚқӨөҺһЁё_\-+.()* ]+$/;
-
-const isCISPhoneNumber = (value) => {
-  // Регулярное выражение для проверки формата номера телефона Казахстана
-  const CISPhoneRegex =
-    /^((8|\+374|\+994|\+995|\+375|\+7|\+380|\+38|\+996|\+998|\+993)[\- ]?)?\(?\d{3,5}\)?[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}[\- ]?\d{1}(([\- ]?\d{1})?[\- ]?\d{1})?$/;
-  return CISPhoneRegex.test(value);
-};
+import {
+  namePattern,
+  addressPattern,
+  isCISPhoneNumber,
+  parseObjectInt,
+} from "./Patterns.js";
 
 const validateSelectParams = (req, res, next) => {
-  const intKeys = ["page", "pageSize"];
-  for (let key of intKeys) {
-    req.query[key] = parseInt(req.query[key]);
-  }
+  parseObjectInt(["page", "pageSize"], req.query);
   req.query.archive = req.query.archive === "true";
-  const selectParamsSchema = Joi.object({
+  const schema = Joi.object({
     page: Joi.number().integer().max(9999999999).min(0).required(),
     pageSize: Joi.number().integer().max(100).min(0).required(),
     sortBy: Joi.string()
@@ -58,7 +51,7 @@ const validateSelectParams = (req, res, next) => {
       .valid("new", "wfd", "processing", "archive")
       .required(),
   });
-  const validationResult = selectParamsSchema.validate(req.query);
+  const validationResult = schema.validate(req.query);
   if (validationResult.error) {
     return res
       .status(400)
@@ -83,10 +76,7 @@ const validateSendCourier = (req, res, next) => {
   next();
 };
 const validateDeliveryId = (req, res, next) => {
-  req.query.delivery_id = parseInt(req.query?.delivery_id);
-  const idParamSchema = Joi.object({
-    delivery_id: Joi.number().integer().max(9999999999).min(0).required(),
-  });
+  parseObjectInt(["delivery_id"], req.query);
   const validationResult = idParamSchema.validate(req.query);
   if (validationResult.error) {
     return res
@@ -183,14 +173,14 @@ const validateEditDelivery = (req, res, next) => {
       .required(),
     comment: Joi.string().pattern(addressPattern).max(50),
   });
-  const intKeys = [
-    "delivery_id",
-    "delivery_price_for_customer",
-    "delivery_price_for_deliver",
-  ];
-  for (let key of intKeys) {
-    req.body[key] = parseInt(req.body[key]);
-  }
+  parseObjectInt(
+    [
+      "delivery_id",
+      "delivery_price_for_customer",
+      "delivery_price_for_deliver",
+    ],
+    req.body
+  );
   const validationResult = schema.validate(req.body);
   if (validationResult.error) {
     return res
