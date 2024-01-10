@@ -509,7 +509,7 @@ export const newPayment = async (req, res) => {
       const debt = await Debt.create({
         client_id: orderInfoPlain.client,
         amount: amount,
-        comment: `ID заказа: ${orderInfoPlain.id}. Долг из оплаты.`,
+        order_id: orderInfoPlain.id,
         workshift_id,
         user_id: userId,
       });
@@ -773,7 +773,7 @@ export const finishOrder = async (req, res) => {
       await Debt.create({
         client_id: orderInfoPlain.client,
         amount: difference,
-        comment: `ID заказа: ${orderInfoPlain.id}. Долг из завершения.`,
+        order_id: orderInfoPlain.id,
         workshift_id,
         user_id: userId,
       });
@@ -798,6 +798,7 @@ export const finishOrder = async (req, res) => {
       client: 0,
       author: 0,
       started_date: new Date(),
+      planned_date: new Date(),
       workshift_id: 0,
       tariff: "minutely",
       link_code: "x",
@@ -878,7 +879,7 @@ export const cancelOrder = async (req, res) => {
         {
           model: Payment,
           as: "payments",
-          attributes: ["amount"],
+          attributes: ["amount", "verified", "is_debt"],
           required: false,
         },
       ],
@@ -898,29 +899,33 @@ export const cancelOrder = async (req, res) => {
     if (orderInfoPlain.finished_date) {
       return res.status(400).json({ message: "Order was already finished" });
     }
-    if (orderInfoPlain.signed) {
-      if (
-        moment(finished_date).diff(
-          moment(orderInfoPlain.started_date),
-          "miliseconds"
-        ) > orgInfoPlain.cancel_time_ms
-      ) {
-        return res.status(400).json({ message: "Cancel time is over" });
-      }
-    }
+    // if (orderInfoPlain.signed) {
+    //   if (
+    //     moment(finished_date).diff(
+    //       moment(orderInfoPlain.started_date),
+    //       "miliseconds"
+    //     ) > orgInfoPlain.cancel_time_ms
+    //   ) {
+    //     return res.status(400).json({ message: "Cancel time is over" });
+    //   }
+    // }
     let paymentSum = 0;
     for (let payment of orderInfoPlain.payments) {
-      paymentSum += payment.amount;
+      if (payment.verified && !payment.is_debt) {
+        paymentSum += payment.amount;
+      }
     }
     if (paymentSum > 0) {
       await Debt.create({
         client_id: orderInfoPlain.client,
         amount: paymentSum,
-        comment: `ID заказа: ${orderInfoPlain.id}. Долг из отмены.`,
+        order_id: orderInfoPlain.id,
         workshift_id,
         user_id: userId,
       });
     }
+    // res.status(200).json({ message: "The order cancelled succesfully" });
+    // return;
     const goods = orderInfoPlain.orderGoods.map((item) => item.specie_id);
     await Specie.update(
       { status: "available", order: null },
@@ -939,6 +944,7 @@ export const cancelOrder = async (req, res) => {
       client: 0,
       author: 0,
       started_date: new Date(),
+      planned_date: new Date(),
       workshift_id,
       tariff: "minutely",
       link_code: "x",

@@ -15,6 +15,11 @@ const initDebt = (sequelize) => {
         allowNull: false,
         unsigned: true,
       },
+      order_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unsigned: true,
+      },
       amount: {
         type: DataTypes.INTEGER,
         allowNull: false,
