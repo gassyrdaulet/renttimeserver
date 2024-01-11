@@ -77,7 +77,10 @@ const validateSendCourier = (req, res, next) => {
 };
 const validateDeliveryId = (req, res, next) => {
   parseObjectInt(["delivery_id"], req.query);
-  const validationResult = idParamSchema.validate(req.query);
+  const schema = Joi.object({
+    delivery_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.query);
   if (validationResult.error) {
     return res
       .status(400)

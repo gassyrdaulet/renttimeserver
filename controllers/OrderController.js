@@ -1079,3 +1079,89 @@ export const deleteDiscount = async (req, res) => {
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
+
+// 1. id int(10) unsigned auto_increment primary key
+// 2. comment varchar(200)
+// 3. specie_id int(10) unsigned
+// 4. client_id int(10) unsigned not null
+// 5. order_id int(10) unsigned
+// 6. specie_violation_type ENUM( "broken", "missing")
+// 7. date DATETIME not null default CURRENT_TIMESTAMP
+// 8. workshift_id int(10) unsigned not null
+// 9. user_id int(10) unsigned not null
+
+export const newViolation = async (req, res) => {
+  try {
+    const workshift_id = 1;
+    const { organization, id: userId } = req.user;
+    const { comment, order_id, specie_id, specie_violation_type, date } =
+      req.body;
+    const Order = createDynamicModel("ArchiveOrder", organization);
+    const Specie = createDynamicModel("Specie", organization);
+    const Violation = createDynamicModel("Violation", organization);
+    const OrderGood = createDynamicModel("OrderGood", organization);
+    Order.hasMany(OrderGood, { foreignKey: "order_id", as: "orderGoods" });
+    const specieInfo = await Specie.findOne({
+      attributes: ["id", "status"],
+      where: { id: specie_id },
+    });
+    if (!specieInfo) {
+      return res.status(400).json({ message: "Specie not found" });
+    }
+    if (specieInfo.get({ plain: true }).status !== "available") {
+      return res
+        .status(400)
+        .json({ message: "Specie status is not available" });
+    }
+    const orderInfo = await Order.findOne({
+      attributes: ["client"],
+      where: { id: order_id, for_increment: false },
+      include: [
+        {
+          model: OrderGood,
+          attributes: ["specie_id"],
+          required: true,
+          as: "orderGoods",
+        },
+      ],
+    });
+    if (!orderInfo) {
+      return res.status(400).json({ message: "Order not found" });
+    }
+    const orderPlain = orderInfo.get({ plain: true });
+    let specieNotFound = true;
+    orderPlain.orderGoods.forEach((item) => {
+      if (item.specie_id === specie_id) {
+        specieNotFound = false;
+      }
+    });
+    if (specieNotFound) {
+      return res
+        .status(400)
+        .json({ message: "Specie not found in this order" });
+    }
+    const createData = {
+      client_id: orderPlain.client,
+      user_id: userId,
+      workshift_id,
+      specie_id,
+      order_id,
+      specie_violation_type,
+    };
+    if (comment) {
+      createData.comment = comment;
+    }
+    if (date) {
+      createData.date = date;
+    }
+    await Specie.update(
+      { status: specie_violation_type },
+      { where: { id: specie_id } }
+    );
+    await Violation.create(createData);
+    res.status(200).json({ message: "Debt created successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};

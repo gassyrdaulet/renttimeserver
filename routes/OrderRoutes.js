@@ -16,6 +16,7 @@ import {
   deleteExtension,
   deletePayment,
   deleteDiscount,
+  newViolation,
 } from "../controllers/OrderController.js";
 import Joi from "joi";
 import {
@@ -170,6 +171,23 @@ const validatePaymentForCourier = (req, res, next) => {
     payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = paymentSchema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateViolation = (req, res, next) => {
+  parseObjectInt(["order_id", "specie_id"], req.body);
+  const schema = Joi.object({
+    specie_violation_type: Joi.string().valid("missing", "broken").required(),
+    date: Joi.date(),
+    comment: Joi.string().pattern(addressPattern).max(500),
+    order_id: Joi.number().integer().max(9999999999).min(0).required(),
+    specie_id: Joi.number().integer().max(9999999999).min(0).required(),
+  });
+  const validationResult = schema.validate(req.body);
   if (validationResult.error) {
     return res
       .status(400)
@@ -347,6 +365,13 @@ router.delete(
   CheckOrganization,
   validateDeleteByIdParam,
   deleteDiscount
+);
+router.post(
+  "/newviolation",
+  CheckToken,
+  CheckOrganization,
+  validateViolation,
+  newViolation
 );
 
 export default router;

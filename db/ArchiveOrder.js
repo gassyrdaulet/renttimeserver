@@ -85,6 +85,10 @@ const initArchiveOrder = (sequelize) => {
         allowNull: false,
         defaultValue: "none",
       },
+      planned_date: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
     },
     {
       indexes: [
