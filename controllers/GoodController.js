@@ -110,7 +110,16 @@ export const getAllSpecies = async (req, res) => {
     const Good = createDynamicModel("Good", organization);
     const Specie = createDynamicModel("Specie", organization);
     Specie.belongsTo(Good, { foreignKey: "good", as: "goodInfo" });
-    const totalCount = await Specie.count();
+    const totalCount = await Specie.count({
+      include: [
+        {
+          model: Good,
+          as: "goodInfo",
+          attributes: ["id"],
+          required: true,
+        },
+      ],
+    });
     const result = await Specie.findAndCountAll({
       where: whereCondition,
       order: orderOptions,

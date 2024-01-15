@@ -54,6 +54,10 @@ const initDebt = (sequelize) => {
           unique: true,
           fields: ["id"],
         },
+        {
+          unique: true,
+          fields: ["id", "workshift_id"],
+        },
       ],
       sequelize,
       modelName: "Debt",

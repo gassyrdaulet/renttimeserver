@@ -148,7 +148,6 @@ const validatePayment = (req, res, next) => {
     order_id: Joi.number().integer().max(9999999999).min(0).required(),
     amount: Joi.number().integer().max(9999999999).min(1).required(),
     date: Joi.date(),
-    is_debt: Joi.boolean().required(),
     payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = paymentSchema.validate(req.body);

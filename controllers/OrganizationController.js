@@ -1,4 +1,9 @@
 import sequelize, { Organization, User, createDynamicModel } from "../db/db.js";
+import config from "../config/config.json" assert { type: "json" };
+import { Op } from "sequelize";
+import moment from "moment";
+
+const { MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
 
 export const newOrganization = async (req, res) => {
   const orgSeparateTables = [
@@ -294,6 +299,313 @@ export const createNewMethod = async (req, res) => {
     const PaymentMethod = createDynamicModel("PaymentMethod", organization);
     await PaymentMethod.create({ name, comission, courier_access });
     return res.status(200).json({ message: "Method created successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const newWorkshift = async (req, res) => {
+  try {
+    const { organization, id: userId } = req.user;
+    const Workshift = createDynamicModel("Workshift", organization);
+    const alreadyOpened = await Workshift.findOne({
+      attributes: ["id"],
+      where: { close_date: null },
+    });
+    if (alreadyOpened) {
+      return res.status(400).json({ message: "Open workshift already exists" });
+    }
+    await Workshift.create({ responsible: userId });
+    res.status(200).json({ message: "New workshift opened successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const closeWorkshift = async (req, res) => {
+  try {
+    const { organization, id: userId } = req.user;
+    const { workshift_id } = req.body;
+    const Role = createDynamicModel("Role", organization);
+    const roles = (await Role.findOne({ where: { user_id: userId } })).get({
+      plain: true,
+    });
+    const Workshift = createDynamicModel("Workshift", organization);
+    const workshiftInfo = await Workshift.findOne({
+      attributes: ["id"],
+      where: { id: workshift_id, close_date: null },
+    });
+    if (!workshiftInfo) {
+      return res.status(400).json({ message: "Workshift was not found" });
+    }
+    const workshiftPlain = workshiftInfo.get({ plain: true });
+    if (workshiftPlain.responsible !== userId) {
+      if (!roles.owner) {
+        return res
+          .status(401)
+          .json({ message: "Can not close this workshift" });
+      }
+    }
+    await Workshift.update(
+      { close_date: new Date() },
+      { where: { id: workshift_id } }
+    );
+    res.status(200).json({ message: "Workshift closed successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const controlWorkshift = async (req, res) => {
+  try {
+    const { organization, id: userId } = req.user;
+    const { amount, positive, workshift_id, payment_method_id } = req.body;
+    const Role = createDynamicModel("Role", organization);
+    const Operation = createDynamicModel("Operation", organization);
+    const Workshift = createDynamicModel("Workshift", organization);
+    const PaymentMethod = createDynamicModel("PaymentMethod", organization);
+    const roles = (await Role.findOne({ where: { user_id: userId } })).get({
+      plain: true,
+    });
+    const paymentMethodInfo = await PaymentMethod.findOne({
+      where: { id: payment_method_id },
+    });
+    if (!paymentMethodInfo) {
+      return res.status(400).json({ message: "Payment method was not found" });
+    }
+    const paymentMethodPlain = paymentMethodInfo.get({ plain: true });
+    const workshiftInfo = await Workshift.findOne({
+      attributes: ["id"],
+      where: { id: workshift_id, close_date: null },
+    });
+    if (!workshiftInfo) {
+      return res.status(400).json({ message: "Workshift was not found" });
+    }
+    const workshiftPlain = workshiftInfo.get({ plain: true });
+    if (workshiftPlain.responsible !== userId) {
+      if (!roles.owner) {
+        return res
+          .status(401)
+          .json({ message: "Can not control cash of this workshift" });
+      }
+    }
+    await Operation.create({
+      amount,
+      positive,
+      type: "control",
+      workshift_id,
+      payment_method: paymentMethodPlain.name,
+      fee: (amount * paymentMethodPlain.comission) / 100,
+    });
+    res.status(200).json({ message: "Control successfully registered" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getWorkshift = async (req, res) => {
+  try {
+    const { organization, id: userId } = req.user;
+    const { workshift_id } = req.query;
+    const whereCondition = {};
+    if (workshift_id) {
+      whereCondition.id = workshift_id;
+    } else {
+      whereCondition.responsible = userId;
+      whereCondition.close_date = null;
+    }
+    const Workshift = createDynamicModel("Workshift", organization);
+    const Order = createDynamicModel("Order", organization);
+    const ArchiveOrder = createDynamicModel("ArchiveOrder", organization);
+    const Extension = createDynamicModel("Extension", organization);
+    const Discount = createDynamicModel("Discount", organization);
+    const Debt = createDynamicModel("Debt", organization);
+    const DeliveryPayoff = createDynamicModel("DeliveryPayoff", organization);
+    const Violation = createDynamicModel("Violation", organization);
+    const Operation = createDynamicModel("Operation", organization);
+    Workshift.belongsTo(User, { foreignKey: "responsible", as: "userInfo" });
+    Workshift.hasMany(Operation, {
+      foreignKey: "workshift_id",
+      as: "operations",
+    });
+    Workshift.hasMany(Extension, {
+      foreignKey: "workshift_id",
+      as: "extensions",
+    });
+    Workshift.hasMany(Order, {
+      foreignKey: "workshift_id",
+      as: "orders",
+    });
+    Workshift.hasMany(ArchiveOrder, {
+      foreignKey: "workshift_id",
+      as: "archiveOrders",
+    });
+    Workshift.hasMany(Discount, {
+      foreignKey: "workshift_id",
+      as: "discounts",
+    });
+    Workshift.hasMany(Debt, {
+      foreignKey: "workshift_id",
+      as: "debts",
+    });
+    Workshift.hasMany(DeliveryPayoff, {
+      foreignKey: "workshift_id",
+      as: "deliveryPayoffs",
+    });
+    Workshift.hasMany(Violation, {
+      foreignKey: "workshift_id",
+      as: "violations",
+    });
+    const workshift = await Workshift.findOne({
+      where: whereCondition,
+      include: [
+        {
+          model: User,
+          as: "userInfo",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Operation,
+          as: "operations",
+          attributes: [
+            "id",
+            "amount",
+            "date",
+            "type",
+            "positive",
+            "payment_method",
+            "fee",
+          ],
+        },
+        {
+          model: Extension,
+          attributes: ["id"],
+          as: "extensions",
+        },
+        {
+          model: Order,
+          as: "orders",
+          attributes: ["id"],
+        },
+        {
+          model: ArchiveOrder,
+          as: "archiveOrders",
+          attributes: ["id"],
+        },
+        {
+          model: Violation,
+          as: "violations",
+          attributes: [
+            "id",
+            "specie_id",
+            "comment",
+            "date",
+            "client_id",
+            "order_id",
+            "specie_violation_type",
+          ],
+        },
+        {
+          model: DeliveryPayoff,
+          as: "deliveryPayoffs",
+          attributes: ["id", "courier_id", "comment", "date"],
+        },
+        {
+          model: Discount,
+          as: "discounts",
+          attributes: ["id", "amount", "reason", "date", "order_id"],
+        },
+        {
+          model: Debt,
+          attributes: [
+            "id",
+            "client_id",
+            "amount",
+            "comment",
+            "date",
+            "closed",
+            "order_id",
+          ],
+          as: "debts",
+        },
+      ],
+    });
+    if (!workshift) {
+      return res
+        .status(200)
+        .json({ close_date: new Date(), message: "Workshift not found" });
+    }
+    res.status(200).json(workshift.get({ plain: true }));
+  } catch (e) {
+    console.log(e?.message);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getWorkshifts = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const {
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      firstDate,
+      secondDate,
+      dateType,
+      filter,
+    } = req.query;
+    const whereCondition = {};
+    if (filter) {
+      whereCondition[Op.or] = [{ id: { [Op.like]: `%${filter}%` } }];
+    }
+    if (
+      Math.abs(moment(firstDate).diff(moment(secondDate), "days")) >
+      MAXIMUM_ARCHIVE_RANGE_DAYS
+    ) {
+      return res.status(400).json({ message: "Range is too big" });
+    }
+    if (firstDate && secondDate && dateType) {
+      whereCondition[Op.and] = [];
+      whereCondition[Op.and].push({
+        [dateType]: { [Op.between]: [firstDate, secondDate] },
+      });
+    }
+    const orderOptions = [[sortBy, sortOrder]];
+    const Workshift = createDynamicModel("Workshift", organization);
+    const Operation = createDynamicModel("Operation", organization);
+    Workshift.belongsTo(User, { foreignKey: "responsible", as: "userInfo" });
+    Workshift.hasMany(Operation, {
+      foreignKey: "workshift_id",
+      as: "operations",
+    });
+    const result = await Workshift.findAndCountAll({
+      where: whereCondition,
+      order: orderOptions,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      include: [
+        {
+          model: User,
+          as: "userInfo",
+          attributes: ["id", "name"],
+          required: true,
+        },
+        {
+          model: Operation,
+          as: "operations",
+        },
+      ],
+      group: `Workshift_${organization}.id`,
+    });
+    res.status(200).json({
+      workshifts: result.rows,
+      filteredTotalCount: result.count.length,
+    });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

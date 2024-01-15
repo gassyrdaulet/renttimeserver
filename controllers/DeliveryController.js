@@ -476,27 +476,64 @@ export const refuseDelivery = async (req, res) => {
 
 export const finishDeliveries = async (req, res) => {
   try {
-    const workshift_id = 1;
     const fieldsToRemove = [
       "status",
       "payoff_id",
       "for_increment",
       "delivery_price_for_deliver",
     ];
-    const { organization } = req.user;
+    const { organization, id: userId } = req.user;
     const { deliveries, comment } = req.body;
     const now = new Date();
     const Delivery = createDynamicModel("Delivery", organization);
     const Payment = createDynamicModel("Payment", organization);
+    const Operation = createDynamicModel("Operation", organization);
+    Delivery.hasMany(Payment, { foreignKey: "delivery_id", as: "payments" });
     const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
     const DeliveryPayoff = createDynamicModel("DeliveryPayoff", organization);
+    const Workshift = createDynamicModel("Workshift", organization);
+    const workshift = await Workshift.findOne({
+      attributes: ["id"],
+      where: { responsible: userId, close_date: null },
+    });
+    if (!workshift) {
+      return res.status(400).json({ message: "Workshift not found" });
+    }
+    const workshift_id = workshift.get({ plain: true }).id;
     let succeeded = 0;
     const fetchedDeliveries = await Delivery.findAll({
       where: {
         for_increment: false,
         id: { [Op.in]: deliveries.map((item) => item.delivery_id) },
       },
+      include: [
+        {
+          model: Payment,
+          as: "payments",
+          attributes: ["id", "amount", "type", "fee"],
+          where: { verified: false, for_courier: true },
+        },
+      ],
     });
+    const paySum = {};
+    for (let delivery of fetchedDeliveries) {
+      delivery?.payments?.forEach((payment) => {
+        if (paySum[payment.type]) {
+          return (paySum[payment.type].sum += payment.amount);
+        }
+        paySum[payment.type] = { sum: payment.amount, fee: payment.fee };
+      });
+    }
+    for (let key of Object.keys(paySum)) {
+      await Operation.create({
+        amount: Math.abs(paySum[key].sum),
+        type: "courier",
+        positive: paySum[key].sum > 0,
+        workshift_id,
+        fee: paySum[key].key,
+        payment_method: key,
+      });
+    }
     let filteredDeliveries = [...deliveries];
     for (let delivery of fetchedDeliveries) {
       filteredDeliveries = filteredDeliveries.filter(
@@ -521,6 +558,7 @@ export const finishDeliveries = async (req, res) => {
     const payoffInfo = await DeliveryPayoff.create({
       comment,
       courier_id: fetchedDeliveries[0].courier_id,
+      workshift_id,
     });
     await Promise.all(
       fetchedDeliveries.map(async (delivery) => {
@@ -572,7 +610,6 @@ export const finishDeliveries = async (req, res) => {
 
 export const newDelivery = async (req, res) => {
   try {
-    const workshift_id = 1;
     const excludedStatuses = ["finished", "status"];
     const { organization, id: userId } = req.user;
     const {
@@ -585,6 +622,15 @@ export const newDelivery = async (req, res) => {
       delivery_price_for_customer,
     } = req.body;
     const OrderForCheck = createDynamicModel("Order", organization);
+    const Workshift = createDynamicModel("Workshift", organization);
+    const workshift = await Workshift.findOne({
+      attributes: ["id"],
+      where: { responsible: userId, close_date: null },
+    });
+    if (!workshift) {
+      return res.status(400).json({ message: "Workshift not found" });
+    }
+    const workshift_id = workshift.get({ plain: true }).id;
     const orderForCheck = await OrderForCheck.findOne({
       attributes: ["id"],
       where: { id: order_id, for_increment: false },
@@ -669,14 +715,22 @@ export const editDelivery = async (req, res) => {
 
 export const cancelDelivery = async (req, res) => {
   try {
-    const workshift_id = 1;
     const fieldsToRemove = ["status", "for_increment", "cancelled"];
-    const { organization } = req.user;
+    const { organization, id: userId } = req.user;
     const { delivery_id } = req.query;
     const now = new Date();
     const Delivery = createDynamicModel("Delivery", organization);
     const Payment = createDynamicModel("Payment", organization);
     const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
+    const Workshift = createDynamicModel("Workshift", organization);
+    const workshift = await Workshift.findOne({
+      attributes: ["id"],
+      where: { responsible: userId, close_date: null },
+    });
+    if (!workshift) {
+      return res.status(400).json({ message: "Workshift not found" });
+    }
+    const workshift_id = workshift.get({ plain: true }).id;
     const deliveryInfo = await Delivery.findOne({
       where: {
         id: delivery_id,

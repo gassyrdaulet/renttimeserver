@@ -342,10 +342,18 @@ export const deleteClient = async (req, res) => {
 
 export const newDebt = async (req, res) => {
   try {
-    const workshift_id = 1;
     const { organization, id: userId } = req.user;
     const { client_id, comment, amount, date } = req.body;
     const Debt = createDynamicModel("Debt", organization);
+    const Workshift = createDynamicModel("Workshift", organization);
+    const workshift = await Workshift.findOne({
+      attributes: ["id"],
+      where: { responsible: userId, close_date: null },
+    });
+    if (!workshift) {
+      return res.status(400).json({ message: "Workshift not found" });
+    }
+    const workshift_id = workshift.get({ plain: true }).id;
     const createData = { client_id, amount, user_id: userId, workshift_id };
     if (comment) {
       createData.comment = comment;
@@ -363,10 +371,41 @@ export const newDebt = async (req, res) => {
 
 export const closeDebt = async (req, res) => {
   try {
-    const { organization } = req.user;
-    const { debt_id } = req.query;
+    const { organization, id: userId } = req.user;
+    const { debt_id, payment_method_id } = req.query;
     const Debt = createDynamicModel("Debt", organization);
+    const Workshift = createDynamicModel("Workshift", organization);
+    const workshift = await Workshift.findOne({
+      attributes: ["id"],
+      where: { responsible: userId, close_date: null },
+    });
+    if (!workshift) {
+      return res.status(400).json({ message: "Workshift not found" });
+    }
+    const workshift_id = workshift.get({ plain: true }).id;
+    const PaymentMethod = createDynamicModel("PaymentMethod", organization);
+    const method = await PaymentMethod.findOne({
+      where: { id: payment_method_id },
+    });
+    if (!method) {
+      return res.status(400).json({ message: "Payment method was not found" });
+    }
+    const method_plain = method.get({ plain: true });
+    const Operation = createDynamicModel("Operation", organization);
+    const debtInfo = await Debt.findOne({ where: { id: debt_id } });
+    if (!debtInfo) {
+      return res.status(400).json({ message: "Долг не найден" });
+    }
+    const debtPlain = debtInfo.get({ plain: true });
     await Debt.update({ closed: true }, { where: { id: debt_id } });
+    await Operation.create({
+      amount: debtPlain.amount,
+      type: "debt",
+      positive: debtPlain.amount > 0,
+      workshift_id,
+      fee: (debtPlain.amount * method_plain.comission) / 100,
+      payment_method: method_plain.name,
+    });
     res.status(200).json({ message: "Debt closed successfully" });
   } catch (e) {
     console.log(e);

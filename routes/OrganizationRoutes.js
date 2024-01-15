@@ -10,12 +10,24 @@ import {
   deleteMethod,
   changeMethodOption,
   editMethod,
+  getWorkshifts,
+  newWorkshift,
+  closeWorkshift,
+  controlWorkshift,
+  getWorkshift,
 } from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
 import moment from "moment";
 import { CheckOrganization } from "../middleware/CheckOrganization.js";
-import { addressPattern, numericPattern, textPattern } from "./Patterns.js";
+import {
+  addressPattern,
+  numericPattern,
+  textPattern,
+  namePattern,
+  parseObjectInt,
+  trimObject,
+} from "./Patterns.js";
 
 const checkWorkTime = (req, res, next) => {
   const { start_work, end_work } = req.body;
@@ -185,6 +197,67 @@ const validateEditMethod = (req, res, next) => {
   }
   next();
 };
+const validateGetWorkshifts = (req, res, next) => {
+  trimObject(["filter"], req.query);
+  parseObjectInt(["page", "pageSize"], req.query);
+  const schema = Joi.object({
+    page: Joi.number().integer().max(9999999999).min(0).required(),
+    pageSize: Joi.number().integer().max(100).min(0).required(),
+    sortBy: Joi.string().valid("open_date", "id", "close_date").required(),
+    sortOrder: Joi.string().valid("DESC", "ASC").required(),
+    filter: Joi.string().max(50).pattern(namePattern),
+    firstDate: Joi.date(),
+    secondDate: Joi.date(),
+    dateType: Joi.string().valid("open_date", "close_date"),
+  });
+  const validationResult = schema.validate(req.query);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateCloseWorkshift = (req, res, next) => {
+  const schema = Joi.object({
+    workshift_id: Joi.number().integer().min(0).max(9999999999).required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateGetWorkshift = (req, res, next) => {
+  const schema = Joi.object({
+    workshift_id: Joi.number().integer().min(0).max(9999999999),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+const validateControlWorkshift = (req, res, next) => {
+  parseObjectInt(["amount", "payment_method_id", "workshift_id"], req.body);
+  const schema = Joi.object({
+    positive: Joi.boolean().required(),
+    amount: Joi.number().integer().max(9999999999).min(1).required(),
+    payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
+    workshift_id: Joi.number().integer().min(0).max(9999999999).required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
 
 const router = new Router();
 
@@ -251,6 +324,35 @@ router.post(
   CheckOrganization,
   validateNewMethod,
   createNewMethod
+);
+router.get(
+  "/getworkshifts",
+  CheckToken,
+  CheckOrganization,
+  validateGetWorkshifts,
+  getWorkshifts
+);
+router.post("/newworkshift", CheckToken, CheckOrganization, newWorkshift);
+router.get(
+  "/getworkshift",
+  CheckToken,
+  CheckOrganization,
+  validateGetWorkshift,
+  getWorkshift
+);
+router.post(
+  "/closeworkshift",
+  CheckToken,
+  CheckOrganization,
+  validateCloseWorkshift,
+  closeWorkshift
+);
+router.post(
+  "/controlworkshift",
+  CheckToken,
+  CheckOrganization,
+  validateControlWorkshift,
+  controlWorkshift
 );
 
 export default router;

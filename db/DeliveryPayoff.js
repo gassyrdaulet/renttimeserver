@@ -23,6 +23,11 @@ const initDeliveryPayoff = (sequelize) => {
         allowNull: false,
         unsigned: true,
       },
+      workshift_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unsigned: true,
+      },
     },
     {
       indexes: [

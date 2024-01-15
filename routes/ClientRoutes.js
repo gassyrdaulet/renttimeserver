@@ -157,6 +157,7 @@ const validateCloseDebt = (req, res, next) => {
   parseObjectInt(["debt_id"], req.query);
   const schema = Joi.object({
     debt_id: Joi.number().integer().max(9999999999).min(0).required(),
+    payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = schema.validate(req.query);
   if (validationResult.error) {

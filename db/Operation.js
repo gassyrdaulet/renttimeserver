@@ -20,12 +20,25 @@ const initOperation = (sequelize) => {
         allowNull: false,
       },
       type: {
-        type: DataTypes.ENUM("payment", "add", "remove", "debt"),
+        type: DataTypes.ENUM("control", "courier", "debt", "payment"),
       },
       workshift_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         unsigned: true,
+      },
+      positive: {
+        type: DataTypes.BOOLEAN(),
+        allowNull: false,
+        defaultValue: true,
+      },
+      fee: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unsigned: true,
+      },
+      payment_method: {
+        type: DataTypes.STRING(20),
       },
     },
     {
