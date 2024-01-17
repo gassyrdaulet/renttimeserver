@@ -221,7 +221,9 @@ export const getContract = async (req, res) => {
       }
       formattedGoods.push({
         name: good.get({ plain: true }).name,
-        code: String(specie.get({ plain: true }).code).padStart(10, "0"),
+        code: `${good.get({ plain: true }).id}/${
+          specie.get({ plain: true }).id
+        }`,
         price: orderGood.saved_price,
         compensation_price: orderGood.saved_compensation_price,
       });

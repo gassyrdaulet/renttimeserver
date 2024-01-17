@@ -27,7 +27,6 @@ const initKZClient = (sequelize) => {
       },
       address: {
         type: DataTypes.STRING(200),
-        allowNull: false,
       },
       email: {
         type: DataTypes.STRING(50),
@@ -35,10 +34,10 @@ const initKZClient = (sequelize) => {
       gender: {
         type: DataTypes.ENUM("male", "female", "undefined"),
         defaultValue: "undefined",
+        allowNull: false,
       },
       paper_givendate: {
         type: DataTypes.DATE,
-        allowNull: false,
       },
       paper_person_id: {
         type: DataTypes.STRING(12),
@@ -51,7 +50,8 @@ const initKZClient = (sequelize) => {
         unique: true,
       },
       paper_authority: {
-        type: DataTypes.ENUM("mvdrk"),
+        type: DataTypes.ENUM("mvdrk", "undefined"),
+        defaultValue: "undefined",
         allowNull: false,
       },
       orders_count: {
@@ -66,15 +66,12 @@ const initKZClient = (sequelize) => {
       },
       city: {
         type: DataTypes.STRING(20),
-        allowNull: false,
       },
       nationality: {
         type: DataTypes.STRING(20),
-        allowNull: false,
       },
       born_region: {
         type: DataTypes.STRING(30),
-        allowNull: false,
       },
     },
     {

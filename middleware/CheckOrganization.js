@@ -14,6 +14,7 @@ export const CheckOrganization = async (req, res, next) => {
       });
     }
     const organization = await Organization.findOne({
+      attributes: ["name", "address", "city", "kz_paper_bin"],
       where: { id: organizationId },
     });
     if (!organization) {
@@ -23,6 +24,7 @@ export const CheckOrganization = async (req, res, next) => {
         noOrg: true,
       });
     }
+    req.user.orgData = organization.get({ plain: true });
     next();
   } catch (e) {
     console.log(e);

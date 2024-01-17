@@ -125,7 +125,7 @@ const validateNewGroup = (req, res, next) => {
   next();
 };
 const validateEditGroup = (req, res, next) => {
-  parseObjectInt(["code", "good_id"], req.body);
+  parseObjectInt(["good_id"], req.body);
   req.body.group_id = parseInt(req.body?.group_id);
   const groupSchema = Joi.object({
     group_id: Joi.number().integer().max(9999999999).min(0).required(),
@@ -140,7 +140,7 @@ const validateEditGroup = (req, res, next) => {
   next();
 };
 const validateSpecie = (req, res, next) => {
-  parseObjectInt(["code", "good_id"], req.body);
+  parseObjectInt(["good_id"], req.body);
   const productSchema = Joi.object({
     status: Joi.string().valid(
       "available",
@@ -149,7 +149,6 @@ const validateSpecie = (req, res, next) => {
       "missing",
       "busy"
     ),
-    code: Joi.number().integer().max(9999999999).min(0).required(),
     good_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = productSchema.validate(req.body);
@@ -161,10 +160,9 @@ const validateSpecie = (req, res, next) => {
   next();
 };
 const validateEditSpecie = (req, res, next) => {
-  parseObjectInt(["code", "specie_id"], req.body);
+  parseObjectInt(["specie_id"], req.body);
   const productSchema = Joi.object({
     status: Joi.string().valid("available", "broken", "repairing", "missing"),
-    code: Joi.number().integer().max(9999999999).min(0),
     specie_id: Joi.number().integer().max(9999999999).min(0).required(),
   });
   const validationResult = productSchema.validate(req.body);
@@ -252,7 +250,7 @@ const validateGetAllSpecies = (req, res, next) => {
   const selectParamsSchema = Joi.object({
     page: Joi.number().integer().max(9999999999).min(0).required(),
     pageSize: Joi.number().integer().max(100).min(0).required(),
-    sortBy: Joi.string().valid("code", "id", "good", "status").required(),
+    sortBy: Joi.string().valid("id", "good", "status").required(),
     sortOrder: Joi.string().valid("DESC", "ASC").required(),
     filter: Joi.string().max(50).pattern(namePattern),
     status: Joi.string().valid(

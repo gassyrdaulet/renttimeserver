@@ -69,8 +69,8 @@ export const registrationGoogle = async (req, res) => {
 
 export const ping = async (req, res) => {
   try {
-    const { organization, id } = req.user;
-    res.status(200).json({ organizationId: organization, userId: id });
+    const { organization, id, orgData } = req.user;
+    res.status(200).json({ organizationId: organization, userId: id, orgData });
   } catch (e) {
     res.status(500).json({ message: "Ошибка сервера: " + e });
   }

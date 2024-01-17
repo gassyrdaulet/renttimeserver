@@ -34,7 +34,7 @@ export const getAllGoods = async (req, res) => {
         {
           model: Specie,
           as: "species",
-          attributes: ["code", "status"],
+          attributes: ["status"],
           required: false,
         },
       ],
@@ -46,7 +46,7 @@ export const getAllGoods = async (req, res) => {
       filteredTotalCount: result.count.length,
     });
   } catch (e) {
-    console.log(e);
+    console.log(e.message);
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
@@ -78,9 +78,6 @@ export const searchSpecie = async (req, res) => {
             id: { [Op.or]: filterOptions },
           },
           {
-            code: { [Op.or]: filterOptions },
-          },
-          {
             order: { [Op.or]: filterOptions },
           },
         ],
@@ -98,10 +95,7 @@ export const getAllSpecies = async (req, res) => {
     const { page, pageSize, sortBy, sortOrder, filter, status } = req.query;
     const whereCondition = {};
     if (filter) {
-      whereCondition[Op.or] = [
-        { code: { [Op.like]: `%${filter}%` } },
-        { id: { [Op.like]: `%${filter}%` } },
-      ];
+      whereCondition[Op.or] = [{ id: { [Op.like]: `%${filter}%` } }];
     }
     if (status) {
       whereCondition[Op.and] = { status };
@@ -483,11 +477,10 @@ export const deleteGroup = async (req, res) => {
 export const createNewSpecie = async (req, res) => {
   try {
     const { organization } = req.user;
-    const { status = "available", code, good_id } = req.body;
+    const { status = "available", good_id } = req.body;
     const Specie = createDynamicModel("Specie", organization);
     await Specie.create({
       status,
-      code,
       good: good_id,
     });
     return res.status(200).json({ message: "New specie created successfully" });
@@ -502,7 +495,7 @@ export const createNewSpecie = async (req, res) => {
 export const editSpecie = async (req, res) => {
   try {
     const { organization } = req.user;
-    const { status, code, specie_id } = req.body;
+    const { status, specie_id } = req.body;
     const Specie = createDynamicModel("Specie", organization);
     const specieInfo = await Specie.findOne({ where: { id: specie_id } });
     if (!specieInfo) {
@@ -515,7 +508,6 @@ export const editSpecie = async (req, res) => {
     await Specie.update(
       {
         status,
-        code,
       },
       { where: { id: specie_id } }
     );

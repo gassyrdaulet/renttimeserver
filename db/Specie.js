@@ -28,12 +28,6 @@ const initSpecie = (sequelize) => {
         allowNull: true,
         unsigned: true,
       },
-      code: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        unsigned: true,
-        zerofill: true,
-      },
       created_date: {
         type: DataTypes.DATE,
         allowNull: false,

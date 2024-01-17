@@ -32,6 +32,15 @@ export const editKZCLient = async (req, res) => {
   try {
     const { organization } = req.user;
     const { client_id } = req.body;
+    const nullFields = [
+      "father_name",
+      "paper_givendate",
+      "nationality",
+      "born_region",
+      "city",
+      "email",
+      "address",
+    ];
     const KZClient = createDynamicModel("KZClient", organization);
     const uppercaseKeys = ["name", "second_name", "father_name"];
     uppercaseKeys.forEach((item) => {
@@ -39,9 +48,13 @@ export const editKZCLient = async (req, res) => {
         req.body[item] = req.body[item].toUpperCase();
       }
     });
-    await KZClient.update({ ...req.body }, { where: { id: client_id } });
+    nullFields.forEach((field) => {
+      req.body[field] = field in req.body ? req.body[field] : null;
+    });
+    await KZClient.update(req.body, { where: { id: client_id } });
     return res.status(200).json({ message: "Client edited successfully" });
   } catch (e) {
+    console.log(e.message);
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
@@ -282,9 +295,16 @@ export const deleteClient = async (req, res) => {
     const { client_id } = req.query;
     const KZClient = createDynamicModel("KZClient", organization);
     const Violation = createDynamicModel("Violation", organization);
+    const Order = createDynamicModel("Order", organization);
+    const ArchiveOrder = createDynamicModel("ArchiveOrder", organization);
     const Debt = createDynamicModel("Debt", organization);
     KZClient.hasMany(Violation, { foreignKey: "client_id", as: "violations" });
     KZClient.hasMany(Debt, { foreignKey: "client_id", as: "debts" });
+    KZClient.hasMany(Order, { foreignKey: "client", as: "orders" });
+    KZClient.hasMany(ArchiveOrder, {
+      foreignKey: "client",
+      as: "archiveOrders",
+    });
     Violation.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
     Debt.belongsTo(User, { foreignKey: "user_id", as: "userInfo" });
     const result = await KZClient.findOne({
@@ -316,8 +336,35 @@ export const deleteClient = async (req, res) => {
             },
           ],
         },
+        {
+          model: Order,
+          as: "orders",
+          required: false,
+          attributes: ["id"],
+        },
+        {
+          model: ArchiveOrder,
+          as: "archiveOrders",
+          required: false,
+          attributes: ["id"],
+        },
       ],
     });
+    if (result.orders.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Can not delete Client. Client has orders" });
+    }
+    if (result.archiveOrders.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Can not delete Client. Client has orders" });
+    }
+    if (debtSum !== 0) {
+      return res
+        .status(400)
+        .json({ message: "Can not delete Client. Debt sum must be 0" });
+    }
     const debtSum = result.debts.reduce((accumulator, currentValue) => {
       return currentValue.closed
         ? accumulator
@@ -343,7 +390,7 @@ export const deleteClient = async (req, res) => {
 export const newDebt = async (req, res) => {
   try {
     const { organization, id: userId } = req.user;
-    const { client_id, comment, amount, date } = req.body;
+    const { client_id, comment, amount, date, order_id = 0 } = req.body;
     const Debt = createDynamicModel("Debt", organization);
     const Workshift = createDynamicModel("Workshift", organization);
     const workshift = await Workshift.findOne({
@@ -354,7 +401,13 @@ export const newDebt = async (req, res) => {
       return res.status(400).json({ message: "Workshift not found" });
     }
     const workshift_id = workshift.get({ plain: true }).id;
-    const createData = { client_id, amount, user_id: userId, workshift_id };
+    const createData = {
+      client_id,
+      amount,
+      user_id: userId,
+      workshift_id,
+      order_id,
+    };
     if (comment) {
       createData.comment = comment;
     }

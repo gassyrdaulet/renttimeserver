@@ -37,7 +37,7 @@ const kzClientSchema = Joi.object({
     .max(10)
     .pattern(numericPattern)
     .required(),
-  paper_authority: Joi.string().valid("mvdrk").required(),
+  paper_authority: Joi.string().valid("mvdrk", "undefined").required(),
   cellphone: Joi.string()
     .trim()
     .custom((value, helpers) => {
@@ -50,13 +50,13 @@ const kzClientSchema = Joi.object({
   second_name: Joi.string().pattern(namePattern).max(50).required(),
   name: Joi.string().max(50).pattern(namePattern).required(),
   father_name: Joi.string().max(50).pattern(namePattern),
-  paper_givendate: Joi.string().required(),
-  gender: Joi.string().valid("male", "female", "undefined"),
-  address: Joi.string().pattern(addressPattern).max(200).required(),
+  paper_givendate: Joi.string(),
+  gender: Joi.string().valid("male", "female", "undefined").required(),
+  address: Joi.string().pattern(addressPattern).max(200),
   email: Joi.string().email().max(50),
-  city: Joi.string().max(20).pattern(addressPattern).required(),
-  nationality: Joi.string().max(20).pattern(textPattern).required(),
-  born_region: Joi.string().max(30).pattern(addressPattern).required(),
+  city: Joi.string().max(20).pattern(addressPattern),
+  nationality: Joi.string().max(20).pattern(namePattern),
+  born_region: Joi.string().max(30).pattern(addressPattern),
 });
 const validateNewKZClient = (req, res, next) => {
   trimObject(["second_name", "name", "father_name"], req.body);
@@ -81,7 +81,7 @@ const validateEditKZClient = (req, res, next) => {
       .max(10)
       .pattern(numericPattern)
       .required(),
-    paper_authority: Joi.string().valid("mvdrk").required(),
+    paper_authority: Joi.string().valid("mvdrk", "undefined").required(),
     cellphone: Joi.string()
       .trim()
       .custom((value, helpers) => {
@@ -95,13 +95,13 @@ const validateEditKZClient = (req, res, next) => {
     second_name: Joi.string().pattern(namePattern).max(50).required(),
     name: Joi.string().max(50).pattern(namePattern).required(),
     father_name: Joi.string().max(50).pattern(namePattern),
-    paper_givendate: Joi.string().required(),
-    gender: Joi.string().valid("male", "female", "undefined"),
-    address: Joi.string().pattern(addressPattern).max(200).required(),
+    paper_givendate: Joi.string(),
+    gender: Joi.string().valid("male", "female", "undefined").required(),
+    address: Joi.string().pattern(addressPattern).max(200),
     email: Joi.string().email().max(50),
-    city: Joi.string().max(20).pattern(addressPattern).required(),
-    nationality: Joi.string().max(20).pattern(textPattern).required(),
-    born_region: Joi.string().max(30).pattern(addressPattern).required(),
+    city: Joi.string().max(20).pattern(addressPattern),
+    nationality: Joi.string().max(20).pattern(namePattern),
+    born_region: Joi.string().max(30).pattern(addressPattern),
   });
   const validationResult = schema.validate(req.body);
   if (validationResult.error) {

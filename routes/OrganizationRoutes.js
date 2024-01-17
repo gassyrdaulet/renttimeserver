@@ -15,6 +15,8 @@ import {
   closeWorkshift,
   controlWorkshift,
   getWorkshift,
+  getOrganization,
+  editOrganization,
 } from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
@@ -242,13 +244,41 @@ const validateGetWorkshift = (req, res, next) => {
   }
   next();
 };
+
+const validateEditOrganization = (req, res, next) => {
+  parseObjectInt(["cancel_time_ms"], req.body);
+  const schema = Joi.object({
+    name: Joi.string().pattern(textPattern).max(30).required(),
+    address: Joi.string().pattern(addressPattern).max(50).required(),
+    city: Joi.string().max(20).pattern(addressPattern).required(),
+    region: Joi.string().valid("kz"),
+    start_work: Joi.string().required(),
+    end_work: Joi.string().required(),
+    bank_company_type: Joi.string().valid("АО", "ТОО", "ОАО", "ИП"),
+    company_type: Joi.string().valid("АО", "ТОО", "ОАО", "ИП"),
+    bank_company_name: Joi.string().pattern(textPattern).max(20).required(),
+    company_name: Joi.string().pattern(textPattern).max(20).required(),
+    kz_paper_bik: Joi.string().pattern(textPattern).max(12).required(),
+    kz_paper_bin: Joi.string().max(12).pattern(numericPattern).required(),
+    kz_paper_iik: Joi.string().max(20).pattern(textPattern).required(),
+    cancel_time_ms: Joi.number().min(0).required(),
+  });
+  const validationResult = schema.validate(req.body);
+  if (validationResult.error) {
+    return res
+      .status(400)
+      .json({ message: validationResult.error.details[0].message });
+  }
+  next();
+};
+
 const validateControlWorkshift = (req, res, next) => {
   parseObjectInt(["amount", "payment_method_id", "workshift_id"], req.body);
   const schema = Joi.object({
     positive: Joi.boolean().required(),
-    amount: Joi.number().integer().max(9999999999).min(1).required(),
-    payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
     workshift_id: Joi.number().integer().min(0).max(9999999999).required(),
+    payment_method_id: Joi.number().integer().max(9999999999).min(0).required(),
+    amount: Joi.number().integer().max(9999999999).min(1).required(),
   });
   const validationResult = schema.validate(req.body);
   if (validationResult.error) {
@@ -264,6 +294,7 @@ const router = new Router();
 router.post(
   "/neworg",
   CheckToken,
+  CheckOrganization,
   validateNewOrganization,
   checkWorkTime,
   newOrganization
@@ -353,6 +384,15 @@ router.post(
   CheckOrganization,
   validateControlWorkshift,
   controlWorkshift
+);
+router.get("/getorganization", CheckToken, CheckOrganization, getOrganization);
+router.post(
+  "/editorganization",
+  CheckToken,
+  CheckOrganization,
+  validateEditOrganization,
+  checkWorkTime,
+  editOrganization
 );
 
 export default router;

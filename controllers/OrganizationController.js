@@ -611,3 +611,72 @@ export const getWorkshifts = async (req, res) => {
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
+
+export const editOrganization = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const {
+      name,
+      address,
+      start_work,
+      end_work,
+      region,
+      city,
+      back_company_type,
+      company_type,
+      bank_company_name,
+      company_name,
+      kz_paper_bik,
+      kz_paper_bin,
+      kz_paper_iik,
+      cancel_time_ms,
+    } = req.body;
+    const orgInfo = await Organization.findOne({
+      where: { id: organization },
+    });
+    if (!orgInfo) {
+      return res.status(400).json({ message: "Organization not found" });
+    }
+    await Organization.update(
+      {
+        name,
+        address,
+        start_work,
+        end_work,
+        region,
+        city,
+        back_company_type,
+        company_type,
+        bank_company_name,
+        company_name,
+        kz_paper_bik,
+        kz_paper_bin,
+        kz_paper_iik,
+        cancel_time_ms,
+      },
+      { where: { id: organization } }
+    );
+    return res
+      .status(200)
+      .json({ message: "Organization edited successfully" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getOrganization = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const orgInfo = await Organization.findOne({
+      where: { id: organization },
+    });
+    if (!orgInfo) {
+      return res.status(400).json({ message: "Organization not found" });
+    }
+    return res.send(orgInfo.get({ plain: true }));
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
