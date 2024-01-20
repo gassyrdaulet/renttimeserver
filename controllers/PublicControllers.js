@@ -8,7 +8,7 @@ import config from "../config/config.json" assert { type: "json" };
 import { customAlphabet } from "nanoid";
 import { sendMessage } from "../service/SMSService.js";
 import { Op } from "sequelize";
-import { updateTable } from "../service/DocumentService.js";
+import { updateQR, updateTable } from "../service/DocumentService.js";
 import fs from "fs/promises";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
@@ -489,6 +489,10 @@ export const getContractDocx = async (req, res) => {
         .format("HH:mm"),
       yearTwoDigits: momentjs().format("YY"),
       table: "{{table}}",
+      qrorg: "{{qrorg}}",
+      qrlink1: "{{qrlink1}}",
+      qrlink2: "{{qrlink2}}",
+      qrclient: "{{qrclient}}",
     };
     const content = await fs.readFile(templatePath);
     const zip = new PizZip(content);
@@ -498,15 +502,34 @@ export const getContractDocx = async (req, res) => {
     });
     doc.setData(data);
     doc.render();
+    const qrclient = {
+      iin: orderData.client_paper_person_id,
+      sign_date: orderData.sign_date,
+      sms_date: orderData.last_sign_sms,
+      serial_no: orderData.client_paper_serial_number,
+      client_cp: orderData.client_cellphone,
+    };
+    const qrorg = {
+      bin: data.kz_paper_bin,
+      sign_date: orderData.order_created_date,
+      org_cp: orderData.cellphone,
+    };
+    const qrlink = `${process.env.DOMEN}/contract/${organization_id}/${order_id}/${contract_code}`;
     const buf = doc.getZip().generate({ type: "nodebuffer" });
     const bufWithTable = await updateTable(buf, { table: formattedGoods });
+    const bufWithQR = await updateQR(bufWithTable, {
+      qrorg,
+      qrclient,
+      qrlink1: { url: qrlink },
+      qrlink2: { url: qrlink },
+    });
     const directoryPath = `./contracts/${organization_id}/`;
     if (!(await directoryExists(directoryPath))) {
       await fs.mkdir(directoryPath, { recursive: true });
     }
     await fs.writeFile(
       `./contracts/${organization_id}/contract_${order_id}_${contract_code}.docx`,
-      bufWithTable
+      bufWithQR
     );
     res.status(200).json({
       orderData,

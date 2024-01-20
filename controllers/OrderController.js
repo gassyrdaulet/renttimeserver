@@ -1,4 +1,4 @@
-import sequelize, { createDynamicModel, User, Organization } from "../db/db.js";
+import { createDynamicModel, User, Organization } from "../db/db.js";
 import { Op } from "sequelize";
 import { controlOrdersCount } from "../service/ClientService.js";
 import { sendMessage } from "../service/SMSService.js";
