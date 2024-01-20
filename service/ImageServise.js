@@ -4,7 +4,7 @@ import fs from "fs/promises";
 
 const directoryPath = "./images/";
 
-async function directoryExists(directoryPath) {
+export async function directoryExists(directoryPath) {
   try {
     await fs.access(directoryPath);
     return true;

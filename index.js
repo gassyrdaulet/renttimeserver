@@ -52,6 +52,7 @@ app.use("/api/clients/", ClientRoutes);
 app.use("/api/deliveries/", DeliveryRoutes);
 app.use("/api/public/", PublicRoutes);
 app.use("/images", express.static("./images"));
+app.use("/contracts", express.static("./contracts"));
 
 app.listen(PORT, () => {
   console.log("Сервер запущен. Порт:", PORT);

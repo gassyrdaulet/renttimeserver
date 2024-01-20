@@ -45,6 +45,7 @@ const sequelize = new Sequelize(database_name, user, password, {
 export const Organization = initOrganization(sequelize);
 export const User = initUser(sequelize);
 export const KZBadClient = initKZBadClient(sequelize);
+Organization.belongsTo(User, { foreignKey: "owner", as: "ownerInfo" });
 initRole(sequelize);
 initGood(sequelize);
 initGroup(sequelize);
