@@ -14,6 +14,7 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { directoryExists } from "../service/ImageServise.js";
 
+const SERVER_URL = `${process.env.SAFE_DOMEN}:${process.env.S_PORT}/`;
 const {
   SMS_EVERY_MS,
   TARIFF_UNITS_RU,
@@ -509,7 +510,7 @@ export const getContractDocx = async (req, res) => {
     );
     res.status(200).json({
       orderData,
-      doc: `https://renttime.kz/contracts/${organization_id}/contract_${order_id}_${contract_code}.docx`,
+      doc: `${SERVER_URL}contracts/${organization_id}/contract_${order_id}_${contract_code}.docx`,
     });
   } catch (e) {
     console.log(e);
