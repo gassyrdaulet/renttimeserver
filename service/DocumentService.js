@@ -6,6 +6,8 @@ import {
   TableRow,
   TableCell,
   Paragraph,
+  WidthType,
+  VerticalAlign,
 } from "docx";
 
 export async function updateText(doc, replacements) {
@@ -32,18 +34,27 @@ export async function updateTable(doc, replacements) {
   const getPatches = (fields) => {
     const patches = {};
     for (const field in fields) {
+      const columnWidths = [5, 15, 45, 15, 20];
       const table = fields[field];
       const headers = Object.keys(table?.[0]);
       patches[field] = {
         type: PatchType.DOCUMENT,
         children: [
           new Table({
-            columnWidths: [500, 500, 1300, 600, 600],
+            width: {
+              size: 100,
+              type: WidthType.PERCENTAGE,
+            },
             rows: [
               new TableRow({
                 children: headers.map(
-                  (header) =>
+                  (header, index) =>
                     new TableCell({
+                      width: {
+                        size: columnWidths[index],
+                        type: WidthType.PERCENTAGE,
+                      },
+                      verticalAlign: VerticalAlign.CENTER,
                       children: [
                         new Paragraph({
                           text: header,
@@ -57,8 +68,12 @@ export async function updateTable(doc, replacements) {
                 (row) =>
                   new TableRow({
                     children: headers.map(
-                      (key) =>
+                      (key, index) =>
                         new TableCell({
+                          width: {
+                            size: columnWidths[index],
+                            type: WidthType.PERCENTAGE,
+                          },
                           children: [new Paragraph(String(row?.[key]))],
                         })
                     ),
