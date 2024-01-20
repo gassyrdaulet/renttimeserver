@@ -14,7 +14,7 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { directoryExists } from "../service/ImageServise.js";
 
-const SERVER_URL = `${process.env.SAFE_DOMEN}:${process.env.S_PORT}/`;
+const SERVER_URL = `${process.env.DOMEN}:${process.env.S_PORT}/`;
 const {
   SMS_EVERY_MS,
   TARIFF_UNITS_RU,
@@ -502,13 +502,14 @@ export const getContractDocx = async (req, res) => {
     });
     doc.setData(data);
     doc.render();
-    const qrclient = {
-      iin: orderData.client_paper_person_id,
-      sign_date: orderData.sign_date,
-      sms_date: orderData.last_sign_sms,
-      serial_no: orderData.client_paper_serial_number,
-      client_cp: orderData.client_cellphone,
-    };
+    const qrclient = {};
+    if (orderData.sign_type === "remote") {
+      qrclient.iin = orderData.client_paper_person_id;
+      qrclient.sign_date = orderData.sign_date;
+      qrclient.sms_date = orderData.last_sign_sms;
+      qrclient.serial_no = orderData.client_paper_serial_number;
+      qrclient.client_cp = orderData.client_cellphone;
+    }
     const qrorg = {
       bin: data.kz_paper_bin,
       sign_date: orderData.order_created_date,
@@ -521,7 +522,7 @@ export const getContractDocx = async (req, res) => {
       qrorg,
       qrclient,
       qrlink1: { url: qrlink },
-      qrlink2: { url: qrlink },
+      qrlink2: orderData.sign_type === "remote" ? { url: qrlink } : {},
     });
     const directoryPath = `./contracts/${organization_id}/`;
     if (!(await directoryExists(directoryPath))) {

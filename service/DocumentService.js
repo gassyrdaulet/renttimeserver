@@ -107,6 +107,13 @@ export const updateQR = async (doc, replacements) => {
   const getPatches = async (fields) => {
     const patches = {};
     for (const field in fields) {
+      if (Object.keys(fields[field]).length === 0) {
+        patches[field] = {
+          type: PatchType.PARAGRAPH,
+          children: [new TextRun({ text: " " })],
+        };
+        continue;
+      }
       const qrCodeDataUri = await QRCode.toDataURL(
         JSON.stringify(fields[field]),
         { margin: 2 }
