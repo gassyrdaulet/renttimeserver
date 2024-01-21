@@ -204,7 +204,7 @@ const validateDebt = (req, res, next) => {
   const schema = Joi.object({
     date: Joi.date(),
     client_id: Joi.number().integer().max(9999999999).min(0).required(),
-    amount: Joi.number().integer().max(9999999999).min(0).required(),
+    amount: Joi.number().integer().max(9999999999).min(-9999999999).required(),
     comment: Joi.string().pattern(textPattern).max(150),
   });
   const validationResult = schema.validate(req.body);
@@ -268,12 +268,12 @@ router.get(
   getDebts
 );
 router.post("/newdebt", CheckToken, CheckOrganization, validateDebt, newDebt);
-router.post(
-  "/closedebt",
-  CheckToken,
-  CheckOrganization,
-  validateCloseDebt,
-  closeDebt
-);
+// router.post(
+//   "/closedebt",
+//   CheckToken,
+//   CheckOrganization,
+//   validateCloseDebt,
+//   closeDebt
+// );
 
 export default router;

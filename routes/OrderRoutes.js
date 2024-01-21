@@ -183,8 +183,9 @@ const validateViolation = (req, res, next) => {
     specie_violation_type: Joi.string().valid("missing", "broken").required(),
     date: Joi.date(),
     comment: Joi.string().pattern(addressPattern).max(500),
-    order_id: Joi.number().integer().max(9999999999).min(0).required(),
-    specie_id: Joi.number().integer().max(9999999999).min(0).required(),
+    order_id: Joi.number().integer().max(9999999999).min(0),
+    specie_id: Joi.number().integer().max(9999999999).min(0),
+    client_id: Joi.number().integer().max(9999999999).min(0),
   });
   const validationResult = schema.validate(req.body);
   if (validationResult.error) {

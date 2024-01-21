@@ -428,38 +428,6 @@ export const getWorkshift = async (req, res) => {
     const Violation = createDynamicModel("Violation", organization);
     const Operation = createDynamicModel("Operation", organization);
     Workshift.belongsTo(User, { foreignKey: "responsible", as: "userInfo" });
-    Workshift.hasMany(Operation, {
-      foreignKey: "workshift_id",
-      as: "operations",
-    });
-    Workshift.hasMany(Extension, {
-      foreignKey: "workshift_id",
-      as: "extensions",
-    });
-    Workshift.hasMany(Order, {
-      foreignKey: "workshift_id",
-      as: "orders",
-    });
-    Workshift.hasMany(ArchiveOrder, {
-      foreignKey: "workshift_id",
-      as: "archiveOrders",
-    });
-    Workshift.hasMany(Discount, {
-      foreignKey: "workshift_id",
-      as: "discounts",
-    });
-    Workshift.hasMany(Debt, {
-      foreignKey: "workshift_id",
-      as: "debts",
-    });
-    Workshift.hasMany(DeliveryPayoff, {
-      foreignKey: "workshift_id",
-      as: "deliveryPayoffs",
-    });
-    Workshift.hasMany(Violation, {
-      foreignKey: "workshift_id",
-      as: "violations",
-    });
     const workshift = await Workshift.findOne({
       where: whereCondition,
       include: [
@@ -468,78 +436,84 @@ export const getWorkshift = async (req, res) => {
           as: "userInfo",
           attributes: ["id", "name"],
         },
-        {
-          model: Operation,
-          as: "operations",
-          attributes: [
-            "id",
-            "amount",
-            "date",
-            "type",
-            "positive",
-            "payment_method",
-            "fee",
-          ],
-        },
-        {
-          model: Extension,
-          attributes: ["id"],
-          as: "extensions",
-        },
-        {
-          model: Order,
-          as: "orders",
-          attributes: ["id"],
-        },
-        {
-          model: ArchiveOrder,
-          as: "archiveOrders",
-          attributes: ["id"],
-        },
-        {
-          model: Violation,
-          as: "violations",
-          attributes: [
-            "id",
-            "specie_id",
-            "comment",
-            "date",
-            "client_id",
-            "order_id",
-            "specie_violation_type",
-          ],
-        },
-        {
-          model: DeliveryPayoff,
-          as: "deliveryPayoffs",
-          attributes: ["id", "courier_id", "comment", "date"],
-        },
-        {
-          model: Discount,
-          as: "discounts",
-          attributes: ["id", "amount", "reason", "date", "order_id"],
-        },
-        {
-          model: Debt,
-          attributes: [
-            "id",
-            "client_id",
-            "amount",
-            "comment",
-            "date",
-            "closed",
-            "order_id",
-          ],
-          as: "debts",
-        },
       ],
     });
+
     if (!workshift) {
       return res
         .status(200)
         .json({ close_date: new Date(), message: "Workshift not found" });
     }
-    res.status(200).json(workshift.get({ plain: true }));
+    const workshiftPlain = workshift.get({ plain: true });
+
+    if (workshift_id) {
+      const operations = await Operation.findAll({
+        where: { workshift_id },
+        attributes: [
+          "id",
+          "amount",
+          "date",
+          "type",
+          "positive",
+          "payment_method",
+          "fee",
+        ],
+      });
+      const extensions = await Extension.findAll({
+        where: { workshift_id },
+        attributes: ["id"],
+      });
+      const orders = await Order.findAll({
+        where: { workshift_id },
+        attributes: ["id"],
+      });
+      const archiveOrders = await ArchiveOrder.findAll({
+        where: { workshift_id },
+        attributes: ["id"],
+      });
+      const violations = await Violation.findAll({
+        where: { workshift_id },
+        attributes: [
+          "id",
+          "specie_id",
+          "comment",
+          "date",
+          "client_id",
+          "order_id",
+          "specie_violation_type",
+        ],
+      });
+      const deliveryPayoffs = await DeliveryPayoff.findAll({
+        where: { workshift_id },
+        attributes: ["id", "courier_id", "comment", "date"],
+      });
+      const discounts = await Discount.findAll({
+        where: { workshift_id },
+        attributes: ["id", "amount", "reason", "date", "order_id"],
+      });
+      const debts = await Debt.findAll({
+        where: { workshift_id },
+        attributes: [
+          "id",
+          "client_id",
+          "amount",
+          "comment",
+          "date",
+          "closed",
+          "order_id",
+        ],
+      });
+      workshiftPlain.orders = orders;
+      workshiftPlain.archiveOrders = archiveOrders;
+      workshiftPlain.violations = violations;
+      workshiftPlain.extensions = extensions;
+      workshiftPlain.operations = operations;
+      workshiftPlain.deliveryPayoffs = deliveryPayoffs;
+      workshiftPlain.debts = discounts;
+      workshiftPlain.debts = debts;
+    }
+
+    res.status(200).json(workshiftPlain);
   } catch (e) {
     console.log(e?.message);
     res.status(500).json({ message: "Unknown internal error" });
@@ -629,7 +603,7 @@ export const editOrganization = async (req, res) => {
       kz_paper_bik,
       kz_paper_bin,
       kz_paper_iik,
-      cancel_time_ms,
+      cancel_time_ms = 0,
     } = req.body;
     const orgInfo = await Organization.findOne({
       where: { id: organization },
