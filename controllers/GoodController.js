@@ -1,11 +1,12 @@
 import { createDynamicModel } from "../db/db.js";
-import { Op, where } from "sequelize";
+import { Op } from "sequelize";
 import {
   getImageResolution,
   createThumbnailFromBuffer,
   saveFromBuffer,
   deleteImagesByProductID,
 } from "../service/ImageServise.js";
+import xlsx from "xlsx";
 import { customAlphabet } from "nanoid";
 
 export const getAllGoods = async (req, res) => {
@@ -89,6 +90,57 @@ export const searchSpecie = async (req, res) => {
   }
 };
 
+export const getSpeciesXLSX = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const Good = createDynamicModel("Good", organization);
+    const Specie = createDynamicModel("Specie", organization);
+    Specie.belongsTo(Good, { foreignKey: "good", as: "goodInfo" });
+    const result = await Specie.findAndCountAll({
+      include: [
+        {
+          model: Good,
+          as: "goodInfo",
+          attributes: ["id", "name"],
+          required: true,
+        },
+      ],
+      group: `Specie_${organization}.id`,
+    });
+    const dataForXLSX = result.rows
+      .sort((a, b) => {
+        if (a.goodInfo.name < b.goodInfo.name) return -1;
+        if (a.goodInfo.name > b.goodInfo.name) return 1;
+        if (a.status < b.status) return -1;
+        if (a.status > b.status) return 1;
+        if (a.id < b.id) return -1;
+        if (a.id > b.id) return 1;
+        return 0;
+      })
+      .map((item, index) => ({
+        "№": index + 1,
+        Наименование: item.goodInfo.name,
+        "Инв. код": `${item.goodInfo.id}/${item.id}`,
+        Статус: item.status,
+        Проверено: null,
+      }));
+    const workSheet = xlsx.utils.json_to_sheet(dataForXLSX);
+    const workBook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workBook, workSheet, `Отчет о генерации цен`);
+    const buffer = xlsx.write(workBook, { bookType: "xlsx", type: "buffer" });
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="inventory.xlsx"'
+    );
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Length", `${buffer.length}`);
+    res.send(buffer);
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
 export const getAllSpecies = async (req, res) => {
   try {
     const { organization } = req.user;
@@ -123,15 +175,32 @@ export const getAllSpecies = async (req, res) => {
         {
           model: Good,
           as: "goodInfo",
-          attributes: ["id", "name"],
+          attributes: ["id", "name", "compensation_price"],
           required: true,
         },
       ],
       group: `Specie_${organization}.id`,
     });
+    const forTotalCompensationSum = await Specie.findAndCountAll({
+      attributes: ["id"],
+      include: [
+        {
+          model: Good,
+          as: "goodInfo",
+          attributes: ["compensation_price"],
+          required: true,
+        },
+      ],
+      group: `Specie_${organization}.id`,
+    });
+    const totalCompensationSum = forTotalCompensationSum.rows.reduce(
+      (sum, item) => sum + item.goodInfo.compensation_price,
+      0
+    );
     res.status(200).json({
       species: result.rows,
       totalCount,
+      totalCompensationSum,
       filteredTotalCount: result.count.length,
     });
   } catch (e) {

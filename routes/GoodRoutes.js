@@ -16,6 +16,7 @@ import {
   editSpecie,
   getAllSpecies,
   searchSpecie,
+  getSpeciesXLSX,
 } from "../controllers/GoodController.js";
 import multer from "multer";
 import { CheckToken } from "../middleware/CheckToken.js";
@@ -393,5 +394,6 @@ router.get(
   searchSpecie
 );
 router.get("/allgroups", CheckToken, CheckOrganization, getAllGroups);
+router.get("/getspeciesxlsx", CheckToken, CheckOrganization, getSpeciesXLSX);
 
 export default router;
