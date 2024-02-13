@@ -1,6 +1,6 @@
 import sequelize, { Organization, User, createDynamicModel } from "../db/db.js";
 import config from "../config/config.json" assert { type: "json" };
-import { Op } from "sequelize";
+import { Op, col, fn } from "sequelize";
 import moment from "moment";
 
 const { MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
@@ -649,6 +649,65 @@ export const getOrganization = async (req, res) => {
       return res.status(400).json({ message: "Organization not found" });
     }
     return res.send(orgInfo.get({ plain: true }));
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getABCdata = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { first_date, second_date } = req.headers;
+    const Order = createDynamicModel("Order", organization);
+    const ArchiveOrder = createDynamicModel("ArchiveOrder", organization);
+    const OrderGood = createDynamicModel("OrderGood", organization);
+    const Good = createDynamicModel("Good", organization);
+    OrderGood.belongsTo(Good, { foreignKey: "good_id", as: "goodInfo" });
+    const orders = await Order.findAll({
+      attributes: ["id"],
+      where: {
+        created_date: { [Op.between]: [first_date, second_date] },
+      },
+    });
+    const archiveOrders = await ArchiveOrder.findAll({
+      attributes: ["id"],
+      where: {
+        created_date: { [Op.between]: [first_date, second_date] },
+      },
+    });
+    if (!orders || !archiveOrders) {
+      return res.send([]);
+    }
+    const orderIds = [
+      ...orders.map((order) => order.id),
+      ...archiveOrders.map((order) => order.id),
+    ];
+    const result1 = await OrderGood.findAll({
+      where: { order_id: { [Op.in]: orderIds } },
+      attributes: ["good_id", [fn("COUNT", col("good_id")), "count"]],
+      include: [
+        {
+          model: Good,
+          as: "goodInfo",
+          required: true,
+        },
+      ],
+      group: ["good_id"],
+    });
+    const goods = await Good.findAll();
+    const result2 = goods.map((item) => ({
+      good_id: item.id,
+      count: 0,
+      goodInfo: item,
+    }));
+    const result = result2.map((element2) => {
+      const matchingElement = result1.find(
+        (element1) => element1.good_id === element2.good_id
+      );
+      return matchingElement ? matchingElement : element2;
+    });
+    return res.send(result);
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

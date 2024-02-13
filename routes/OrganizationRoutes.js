@@ -17,6 +17,7 @@ import {
   getWorkshift,
   getOrganization,
   editOrganization,
+  getABCdata,
 } from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
@@ -394,5 +395,6 @@ router.post(
   checkWorkTime,
   editOrganization
 );
+router.get("/summaryabc", CheckToken, CheckOrganization, getABCdata);
 
 export default router;
