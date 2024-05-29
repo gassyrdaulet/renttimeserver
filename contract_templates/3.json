@@ -1,0 +1,21 @@
+[
+  { "title": "№", "width": 500, "key": "index", "source": null },
+  {
+    "title": "Номер кладовки и площадь",
+    "width": 5500,
+    "key": "name",
+    "source": "goodInfo"
+  },
+  {
+    "title": "Цена за 1 день, тенге (без НДС)",
+    "width": 2000,
+    "key": "price_per_day",
+    "source": "goodInfo"
+  },
+  {
+    "title": "Цена за месяц, тенге (без НДС)",
+    "width": 2000,
+    "key": "saved_price",
+    "source": null
+  }
+]

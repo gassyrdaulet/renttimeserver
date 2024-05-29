@@ -1,0 +1,22 @@
+[
+  { "title": "№", "width": 500, "key": "index", "source": null },
+  {
+    "title": "Наименование",
+    "width": 4500,
+    "key": "name",
+    "source": "goodInfo"
+  },
+  { "title": "Инв. номер", "width": 1500, "key": "specie_id", "source": null },
+  {
+    "title": "Цена, тенге",
+    "width": 1500,
+    "key": "saved_price",
+    "source": null
+  },
+  {
+    "title": "Стоимость оборудования, тенге",
+    "width": 2000,
+    "key": "saved_compensation_price",
+    "source": null
+  }
+]

@@ -126,7 +126,7 @@ const validateNewGroup = (req, res, next) => {
   next();
 };
 const validateEditGroup = (req, res, next) => {
-  parseObjectInt(["good_id"], req.body);
+  parseObjectInt(["group_id"], req.body);
   req.body.group_id = parseInt(req.body?.group_id);
   const groupSchema = Joi.object({
     group_id: Joi.number().integer().max(9999999999).min(0).required(),
@@ -214,7 +214,8 @@ const validateSpecieIdParam = (req, res, next) => {
   next();
 };
 const validateIdBody = (req, res, next) => {
-  parseObjectInt("id", req.bopdy);
+  console.log(req.body);
+  parseObjectInt(["id"], req.body);
   const idSchema = Joi.object({
     id: Joi.number().integer().max(9999999999).min(0).required(),
   });

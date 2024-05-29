@@ -38,6 +38,35 @@ async function readFileWithFallback(templatePath, templatePathDefault) {
   return content;
 }
 
+async function getTemplateWithFallback(organization) {
+  let content;
+  try {
+    content = JSON.parse(
+      (
+        await fs.readFile(`./contract_templates/${organization}.json`)
+      ).toString()
+    );
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      content = [
+        { title: "№", width: 500, key: "index", source: null },
+        { title: "Наименование", width: 4500, key: "name", source: "goodInfo" },
+        { title: "Инв. номер", width: 1500, key: "specie_id", source: null },
+        { title: "Цена, тенге", width: 1500, key: "saved_price", source: null },
+        {
+          title: "Стоимость оборудования, тенге",
+          width: 2000,
+          key: "saved_compensation_price",
+          source: null,
+        },
+      ];
+    } else {
+      throw error;
+    }
+  }
+  return content;
+}
+
 export const confirmCode = async (req, res) => {
   try {
     const { organization_id, order_id, contract_code, sign_code } = req.query;
@@ -344,7 +373,8 @@ export const getContractDocx = async (req, res) => {
       return res.status(404).json({ message: "Organization not found" });
     }
     const templatePathDefault = "./contract_templates/default.docx";
-    const templatePath = `./contract_templates/${organization}.docx`;
+    const templatePath = `./contract_templates/${3}.docx`;
+    const tableTemplate = await getTemplateWithFallback(3);
     const organization_plain = organization.get({ plain: true });
     const { ownerInfo } = organization_plain;
     const superVisorName = `${ownerInfo?.second_name} ${ownerInfo?.name} ${
@@ -375,7 +405,7 @@ export const getContractDocx = async (req, res) => {
         {
           model: OrderGood,
           as: "orderGoods",
-          include: [{ model: Good, as: "goodInfo", attributes: ["name"] }],
+          include: [{ model: Good, as: "goodInfo" }],
         },
       ],
     });
@@ -409,19 +439,20 @@ export const getContractDocx = async (req, res) => {
       TARIFF_UNITS_RU[order_plain.tariff]
     }`;
     orderGoods.forEach((orderGood, index) => {
-      formattedGoods.push({
-        "№": index + 1,
-        Наименование: orderGood?.goodInfo?.name,
-        "Инв. номер": `${orderGood.good_id}/${orderGood.specie_id}`,
-        [`Цена (${units})`]: orderGood.saved_price,
-        "Стоимость оборудования, тг": orderGood.saved_compensation_price,
+      orderGood.index = index + 1;
+      const row = {};
+      tableTemplate.forEach((column) => {
+        const { source, key, title } = column;
+        const value = source ? orderGood[source][key] : orderGood[key];
+        row[title] = value;
       });
+      formattedGoods.push(row);
     });
     let sum = 0;
     let compensation_sum = 0;
-    formattedGoods.forEach((item) => {
-      compensation_sum += item["Стоимость оборудования, тг"];
-      sum += item[`Цена (${units})`] * renttime;
+    orderGoods.forEach((orderGood) => {
+      compensation_sum += orderGood.saved_compensation_price;
+      sum += orderGood.saved_price * renttime;
     });
     const orderData = {
       client_address: client_plain?.address,
@@ -535,7 +566,13 @@ export const getContractDocx = async (req, res) => {
     };
     const qrlink = `${process.env.DOMEN}/contract/${organization_id}/${order_id}/${contract_code}`;
     const buf = doc.getZip().generate({ type: "nodebuffer" });
-    const bufWithTable = await updateTable(buf, { table: formattedGoods });
+    const bufWithTable = await updateTable(
+      buf,
+      {
+        table: formattedGoods,
+      },
+      tableTemplate.map((item) => item.width)
+    );
     const bufWithQR = await updateQR(bufWithTable, {
       qrorg,
       qrclient,

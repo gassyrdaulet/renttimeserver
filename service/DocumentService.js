@@ -38,11 +38,10 @@ export async function updateText(doc, replacements) {
   return updated;
 }
 
-export async function updateTable(doc, replacements) {
+export async function updateTable(doc, replacements, columnWidths) {
   const getPatches = (fields) => {
     const patches = {};
     for (const field in fields) {
-      const columnWidths = [500, 4500, 1500, 1500, 2000];
       const table = fields[field];
       const headers = Object.keys(table?.[0]);
       patches[field] = {

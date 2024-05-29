@@ -248,7 +248,6 @@ const validateGetWorkshift = (req, res, next) => {
 };
 
 const validateEditOrganization = (req, res, next) => {
-  parseObjectInt(["cancel_time_ms"], req.body);
   const schema = Joi.object({
     name: Joi.string().pattern(textPattern).max(30).required(),
     address: Joi.string().pattern(addressPattern).max(50).required(),
@@ -263,7 +262,7 @@ const validateEditOrganization = (req, res, next) => {
     kz_paper_bik: Joi.string().pattern(textPattern).max(12).required(),
     kz_paper_bin: Joi.string().max(12).pattern(numericPattern).required(),
     kz_paper_iik: Joi.string().max(20).pattern(textPattern).required(),
-    cancel_time_ms: Joi.number().min(0).required(),
+    cancel_time_ms: Joi.number().min(0),
   });
   const validationResult = schema.validate(req.body);
   if (validationResult.error) {
