@@ -373,8 +373,8 @@ export const getContractDocx = async (req, res) => {
       return res.status(404).json({ message: "Organization not found" });
     }
     const templatePathDefault = "./contract_templates/default.docx";
-    const templatePath = `./contract_templates/${3}.docx`;
-    const tableTemplate = await getTemplateWithFallback(3);
+    const templatePath = `./contract_templates/${organization_id}.docx`;
+    const tableTemplate = await getTemplateWithFallback(organization_id);
     const organization_plain = organization.get({ plain: true });
     const { ownerInfo } = organization_plain;
     const superVisorName = `${ownerInfo?.second_name} ${ownerInfo?.name} ${
