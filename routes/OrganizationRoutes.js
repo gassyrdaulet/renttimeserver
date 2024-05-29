@@ -296,7 +296,6 @@ const router = new Router();
 router.post(
   "/neworg",
   CheckToken,
-  CheckOrganization,
   validateNewOrganization,
   checkWorkTime,
   newOrganization
