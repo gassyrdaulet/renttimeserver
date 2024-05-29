@@ -30,7 +30,7 @@ function validateNewAccount(req, res, next) {
     password: Joi.string()
       .min(8)
       .max(30)
-      .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
+      .pattern(new RegExp("^[a-zA-Z0-9!@#*&$]{3,30}$"))
       .required(),
   });
   const { error } = schema.validate(req.body);
