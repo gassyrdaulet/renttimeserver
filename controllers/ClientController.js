@@ -393,6 +393,7 @@ export const newDebt = async (req, res) => {
     const { client_id, comment, amount, date, order_id = 0 } = req.body;
     const Debt = createDynamicModel("Debt", organization);
     const Workshift = createDynamicModel("Workshift", organization);
+    const Operation = createDynamicModel("Operation", organization);
     const workshift = await Workshift.findOne({
       attributes: ["id"],
       where: { responsible: userId, close_date: null },
@@ -403,7 +404,7 @@ export const newDebt = async (req, res) => {
     const workshift_id = workshift.get({ plain: true }).id;
     const createData = {
       client_id,
-      amount,
+      amount: amount,
       user_id: userId,
       workshift_id,
       order_id,
@@ -413,6 +414,16 @@ export const newDebt = async (req, res) => {
     }
     if (date) {
       createData.date = date;
+    }
+    if (!method) {
+      await Operation.create({
+        amount: amount,
+        type: "debt",
+        positive: amount < 0,
+        workshift_id,
+        fee: (debtPlain.amount * method_plain.comission) / 100,
+        payment_method: method_plain.name,
+      });
     }
     await Debt.create(createData);
     res.status(200).json({ message: "Debt created successfully" });

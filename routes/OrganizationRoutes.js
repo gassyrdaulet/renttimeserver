@@ -18,6 +18,7 @@ import {
   getOrganization,
   editOrganization,
   getABCdata,
+  getIncomeData,
 } from "../controllers/OrganizationController.js";
 import { CheckToken } from "../middleware/CheckToken.js";
 import Joi from "joi";
@@ -396,5 +397,6 @@ router.post(
   editOrganization
 );
 router.get("/summaryabc", CheckToken, CheckOrganization, getABCdata);
+router.get("/summaryincome", CheckToken, CheckOrganization, getIncomeData);
 
 export default router;

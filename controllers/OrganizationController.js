@@ -676,7 +676,7 @@ export const getABCdata = async (req, res) => {
         created_date: { [Op.between]: [first_date, second_date] },
       },
     });
-    if (!orders || !archiveOrders) {
+    if (!orders && !archiveOrders) {
       return res.send([]);
     }
     const orderIds = [
@@ -708,6 +708,41 @@ export const getABCdata = async (req, res) => {
       return matchingElement ? matchingElement : element2;
     });
     return res.send(result);
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getIncomeData = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { first_date, second_date } = req.headers;
+    const ArchiveDelivery = createDynamicModel("ArchiveDelivery", organization);
+    const Payment = createDynamicModel("Payment", organization);
+    const Extension = createDynamicModel("Extension", organization);
+    const Debt = createDynamicModel("Debt", organization);
+    const deliveries = await ArchiveDelivery.findAll({
+      where: {
+        finished_date: { [Op.between]: [first_date, second_date] },
+      },
+    });
+    const extensions = await Extension.findAll({
+      where: {
+        date: { [Op.between]: [first_date, second_date] },
+      },
+    });
+    const payments = await Payment.findAll({
+      where: {
+        date: { [Op.between]: [first_date, second_date] },
+      },
+    });
+    const debts = await Debt.findAll({
+      where: {
+        date: { [Op.between]: [first_date, second_date] },
+      },
+    });
+    return res.send({ deliveries, debts, payments, extensions });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

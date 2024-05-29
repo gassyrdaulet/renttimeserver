@@ -24,6 +24,20 @@ const {
 } = config;
 const currency = "KZT";
 
+async function readFileWithFallback(templatePath, templatePathDefault) {
+  let content;
+  try {
+    content = await fs.readFile(templatePath);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      content = await fs.readFile(templatePathDefault);
+    } else {
+      throw error;
+    }
+  }
+  return content;
+}
+
 export const confirmCode = async (req, res) => {
   try {
     const { organization_id, order_id, contract_code, sign_code } = req.query;
@@ -313,7 +327,6 @@ export const getContract = async (req, res) => {
 
 export const getContractDocx = async (req, res) => {
   try {
-    const templatePath = "./contract_templates/default.docx";
     const tzname = "Asia/Almaty";
     const { organization_id, order_id, contract_code } = req.query;
     const organization = await Organization.findOne({
@@ -330,6 +343,8 @@ export const getContractDocx = async (req, res) => {
     if (!organization) {
       return res.status(404).json({ message: "Organization not found" });
     }
+    const templatePathDefault = "./contract_templates/default.docx";
+    const templatePath = `./contract_templates/${organization}.docx`;
     const organization_plain = organization.get({ plain: true });
     const { ownerInfo } = organization_plain;
     const superVisorName = `${ownerInfo?.second_name} ${ownerInfo?.name} ${
@@ -494,7 +509,10 @@ export const getContractDocx = async (req, res) => {
       qrlink2: "{{qrlink2}}",
       qrclient: "{{qrclient}}",
     };
-    const content = await fs.readFile(templatePath);
+    const content = await readFileWithFallback(
+      templatePath,
+      templatePathDefault
+    );
     const zip = new PizZip(content);
     const doc = new Docxtemplater(zip, {
       paragraphLoop: true,
