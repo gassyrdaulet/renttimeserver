@@ -62,7 +62,7 @@ function validateNewOrganization(req, res, next) {
     end_work: Joi.string().required(),
     bank_company_type: Joi.string().valid("АО", "ТОО", "ОАО", "ИП"),
     company_type: Joi.string().valid("АО", "ТОО", "ОАО", "ИП"),
-    bank_company_name: Joi.string().pattern(textPattern).max(20).required(),
+    bank_company_name: Joi.string().pattern(textPattern).max(100).required(),
     company_name: Joi.string().pattern(textPattern).max(20).required(),
     kz_paper_bik: Joi.string().pattern(textPattern).max(12).required(),
     kz_paper_bin: Joi.string().max(12).pattern(numericPattern).required(),
