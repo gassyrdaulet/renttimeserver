@@ -202,12 +202,14 @@ export const getContract = async (req, res) => {
       supervisor: superVisorName,
       supervisor_short: superVisorShortName,
       template: organization_plain?.template,
-      work_close_time: momentjs(organization_plain?.end_work, "HH:mm:ss")
-        .tz(tzname)
-        .format("HH:mm"),
-      work_open_time: momentjs(organization_plain?.start_work, "HH:mm:ss")
-        .tz(tzname)
-        .format("HH:mm"),
+      work_close_time: momentjs(
+        organization_plain?.end_work,
+        "HH:mm:ss"
+      ).format("HH:mm"),
+      work_open_time: momentjs(
+        organization_plain?.start_work,
+        "HH:mm:ss"
+      ).format("HH:mm"),
       yearTwoDigits: momentjs().format("YY"),
     };
     const OrderForCheck = createDynamicModel("Order", organization_id);
@@ -527,12 +529,14 @@ export const getContractDocx = async (req, res) => {
       supervisor: superVisorName,
       supervisor_short: superVisorShortName,
       template: organization_plain?.template,
-      work_close_time: momentjs(organization_plain?.end_work, "HH:mm:ss")
-        .tz(tzname)
-        .format("HH:mm"),
-      work_open_time: momentjs(organization_plain?.start_work, "HH:mm:ss")
-        .tz(tzname)
-        .format("HH:mm"),
+      work_close_time: momentjs(
+        organization_plain?.end_work,
+        "HH:mm:ss"
+      ).format("HH:mm"),
+      work_open_time: momentjs(
+        organization_plain?.start_work,
+        "HH:mm:ss"
+      ).format("HH:mm"),
       yearTwoDigits: momentjs().format("YY"),
       table: "{{table}}",
       qrorg: "{{qrorg}}",
