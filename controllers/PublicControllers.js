@@ -149,7 +149,7 @@ export const sendCode = async (req, res) => {
     const sign_code = customAlphabet("1234567890", 6)();
     const message_id = await sendMessage(
       client_plain.cellphone,
-      `Код для подписания заказа №${order_id}: ${sign_code}`
+      `Код для подписания заказа RentTime №${order_id}: ${sign_code}`
     );
     await Order.update(
       { sign_code, message_id, last_sign_sms: new Date() },
