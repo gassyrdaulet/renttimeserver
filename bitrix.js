@@ -38,6 +38,7 @@ export const publishDeal = async (days, data, priceId, productId) => {
       STAGE_ID: "EXECUTING",
       UF_CRM_1716125097863: days,
       CONTACT_ID: contactId,
+      UF_CRM_1717842432881: data.organization_name,
     },
     params: { REGISTER_SONET_EVENT: "Y" },
   };

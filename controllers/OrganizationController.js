@@ -72,7 +72,11 @@ export const newOrganization = async (req, res) => {
       await PaymentMethod.create({ comission: 0, name: "Наличные" });
       await publishDeal(
         firstTimeDemoDays,
-        { phone: existingUser.cellphone, name: existingUser.name },
+        {
+          phone: existingUser.cellphone,
+          name: existingUser.name,
+          organization_name: req.body.name,
+        },
         13,
         15
       );
