@@ -39,13 +39,15 @@ export const newOrganization = async (req, res) => {
     });
     if (existingOrganization) {
       return res.status(400).json({
-        message: `You are already in the Organization!`,
+        message: `Вы уже состоите в существующей организации.`,
         data: { orgId: existingOrganization.getDataValue(id) },
       });
     }
     const newOrganization = (
       await Organization.create({
         owner: id,
+        messages: 0,
+        subs: JSON.stringify([{ date: Date.now(), days: 3 }]),
         ...req.body,
       })
     ).get({ plain: true });
@@ -97,6 +99,91 @@ export const getPaymentMethods = async (req, res) => {
     }
     const methods = await PaymentMethod.findAll(whereCondition);
     return res.status(200).json({ methods });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Unknown internal error" });
+  }
+};
+
+export const getMainData = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const firstDayOfMonth = moment().startOf("month");
+    const lastDayOfMonth = moment().endOf("month");
+    const Payment = createDynamicModel("Payment", organization);
+    const Extension = createDynamicModel("Extension", organization);
+    const ArchiveOrder = createDynamicModel("ArchiveOrder", organization);
+    const Order = createDynamicModel("Order", organization);
+    const Client = createDynamicModel("KZClient", organization);
+    const Goods = createDynamicModel("Good", organization);
+    const Species = createDynamicModel("Specie", organization);
+    const organization_data = await Organization.findOne({
+      where: { id: organization },
+      attributes: ["id", "subs", "messages"],
+    });
+    const subs = JSON.parse(organization_data.getDataValue("subs"));
+    const messages = organization_data.getDataValue("messages");
+    const latest = subs.reduce((max, current) => {
+      return new Date(current.date) > new Date(max.date) ? current : max;
+    });
+    const orders_count =
+      (await Order.count({ where: { cancelled: false } })) +
+      (await ArchiveOrder.count({ where: { cancelled: false } }));
+    const goods_count = await Goods.count();
+    const species_count = await Species.count();
+    const clients_count = await Client.count();
+    const orders = [
+      ...(await Order.findAll({
+        where: {
+          created_date: {
+            [Op.between]: [firstDayOfMonth.toDate(), lastDayOfMonth.toDate()],
+          },
+          cancelled: false,
+        },
+        attributes: [["created_date", "date"]],
+      })),
+      ...(await ArchiveOrder.findAll({
+        where: {
+          created_date: {
+            [Op.between]: [firstDayOfMonth.toDate(), lastDayOfMonth.toDate()],
+          },
+          cancelled: false,
+        },
+        attributes: [["created_date", "date"]],
+      })),
+    ];
+    const extensions = await Extension.findAll({
+      where: {
+        date: {
+          [Op.between]: [firstDayOfMonth.toDate(), lastDayOfMonth.toDate()],
+        },
+      },
+      attributes: ["date"],
+    });
+    const payments = await Payment.findAll({
+      where: {
+        date: {
+          [Op.between]: [firstDayOfMonth.toDate(), lastDayOfMonth.toDate()],
+        },
+        is_debt: false,
+        verified: true,
+      },
+      attributes: ["date", "amount"],
+    });
+    return res.status(200).json({
+      subData: { latest, messages },
+      totals: {
+        totalOrders: orders_count,
+        totalGoods: goods_count,
+        totalSpecies: species_count,
+        totalClients: clients_count,
+      },
+      chartData: {
+        orders: orders.map((item) => item.dataValues),
+        extensions: extensions.map((item) => item.dataValues),
+        payments: payments.map((item) => item.dataValues),
+      },
+    });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Unknown internal error" });

@@ -114,6 +114,12 @@ export const sendCode = async (req, res) => {
       return res.status(404).json({ message: "Organization not found" });
     }
     const organization_plain = organization.get({ plain: true });
+    if (!organization_plain.messages || organization_plain.messages <= 0) {
+      return res.status(404).json({
+        message: `У организации «${organization_plain.name}» закончилися баланс на отправку СМС.`,
+      });
+    }
+    const { messages } = organization_plain;
     const Order = createDynamicModel("Order", organization_plain.id);
     const order = await Order.findOne({
       attributes: ["id", "signed", "link_code", "last_sign_sms", "client"],
@@ -152,13 +158,25 @@ export const sendCode = async (req, res) => {
       `Код для подписания заказа RentTime №${order_id}: ${sign_code}`
     );
     await Order.update(
-      { sign_code, message_id, last_sign_sms: new Date() },
+      {
+        sign_code,
+        message_id,
+        last_sign_sms: new Date(),
+      },
       { where: { id: order_id } }
     );
-    res.status(200).json({ message: "SMS code successfully sent" });
+    await Organization.update(
+      {
+        messages: messages - 1,
+      },
+      {
+        where: { id: organization_id },
+      }
+    );
+    res.status(200).json({ message: "SMS код успешно отправлен" });
   } catch (e) {
     console.log(e);
-    res.status(500).json({ message: "Unknown internal error" });
+    res.status(500).json({ message: "Ошибка при отправке SMS" });
   }
 };
 

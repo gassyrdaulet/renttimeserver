@@ -95,6 +95,14 @@ const initOrganization = (sequelize) => {
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
+      subs: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      messages: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
     },
     {
       indexes: [

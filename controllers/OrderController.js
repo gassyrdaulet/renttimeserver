@@ -7,7 +7,7 @@ import { customAlphabet } from "nanoid";
 import moment from "moment";
 
 const { TARIFF_KEYS, TARIFF_MOMENT_KEYS, MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
-const smsLink = `Договор аренды: ${process.env.DOMEN}/contract/`;
+const smsLink = `Подпишите договор RentTime: ${process.env.DOMEN}/contract/`;
 
 export const createNewOrder = async (req, res) => {
   try {
@@ -26,6 +26,7 @@ export const createNewOrder = async (req, res) => {
       discountReason,
       sendSMS,
     } = req.body;
+    const { messages } = req.user.orgData;
     const Order = createDynamicModel("Order", organization);
     const OrderGood = createDynamicModel("OrderGood", organization);
     const Client = createDynamicModel("KZClient", organization);
@@ -103,11 +104,26 @@ export const createNewOrder = async (req, res) => {
         renttime,
       });
       if (sendSMS) {
+        if (messages <= 0) {
+          const error = new Error(
+            `У вашей организации закончилися баланс на отправку СМС.`
+          );
+          error.message_error = true;
+          throw error;
+        }
         const message_id = await sendMessage(
           clientInfo.cellphone,
           `${smsLink}${organization}/${newOrder.id}/${link_code}`
         );
         await Order.update({ message_id }, { where: { id: newOrder.id } });
+        await Organization.update(
+          {
+            messages: messages - 1,
+          },
+          {
+            where: { id: organization },
+          }
+        );
       }
       if (discount)
         await Discount.create({
@@ -152,6 +168,9 @@ export const createNewOrder = async (req, res) => {
     res.status(200).json({ message: "New order created successfully" });
   } catch (e) {
     console.log(e);
+    if (e.message_error) {
+      return res.status(400).json({ message: e.message });
+    }
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
@@ -878,6 +897,7 @@ export const finishOrder = async (req, res) => {
 export const sendLink = async (req, res) => {
   try {
     const { organization } = req.user;
+    const { messages } = req.user.orgData;
     const { order_id, link_code } = req.body;
     const Order = createDynamicModel("Order", organization);
     const Client = createDynamicModel("KZClient", organization);
@@ -904,14 +924,32 @@ export const sendLink = async (req, res) => {
     if (order_plain.link_code !== link_code) {
       return res.status(404).json({ message: "Link code is not correct" });
     }
+    if (messages <= 0) {
+      const error = new Error(
+        `У вашей организации закончилися баланс на отправку СМС.`
+      );
+      error.message_error = true;
+      throw error;
+    }
     const message_id = await sendMessage(
       order_plain.clientInfo.cellphone,
       `${smsLink}${organization}/${order_id}/${link_code}`
     );
     await Order.update({ message_id }, { where: { id: order_id } });
-    res.status(200).json({ message: "SMS link successfully sent" });
+    await Organization.update(
+      {
+        messages: messages - 1,
+      },
+      {
+        where: { id: organization },
+      }
+    );
+    res.status(200).json({ message: "SMS ссылка успешно отправлнеа" });
   } catch (e) {
     console.log(e);
+    if (e.message_error) {
+      return res.status(400).json({ message: e.message });
+    }
     res.status(500).json({ message: "Unknown internal error" });
   }
 };
