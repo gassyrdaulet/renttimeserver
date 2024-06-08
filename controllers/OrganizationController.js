@@ -2,8 +2,10 @@ import sequelize, { Organization, User, createDynamicModel } from "../db/db.js";
 import config from "../config/config.json" assert { type: "json" };
 import { Op, col, fn } from "sequelize";
 import moment from "moment";
+import { publishDeal } from "../bitrix.js";
 
 const { MAXIMUM_ARCHIVE_RANGE_DAYS } = config;
+const firstTimeDemoDays = 3;
 
 export const newOrganization = async (req, res) => {
   const orgSeparateTables = [
@@ -47,7 +49,7 @@ export const newOrganization = async (req, res) => {
       await Organization.create({
         owner: id,
         messages: 0,
-        subs: JSON.stringify([{ date: Date.now(), days: 3 }]),
+        subs: JSON.stringify([{ date: Date.now(), days: firstTimeDemoDays }]),
         ...req.body,
       })
     ).get({ plain: true });
@@ -68,6 +70,12 @@ export const newOrganization = async (req, res) => {
       });
       const PaymentMethod = createDynamicModel("PaymentMethod", newId);
       await PaymentMethod.create({ comission: 0, name: "Наличные" });
+      await publishDeal(
+        firstTimeDemoDays,
+        { phone: existingUser.cellphone, name: existingUser.name },
+        13,
+        15
+      );
     } catch (e) {
       for (let item of orgSeparateTables) {
         await sequelize.query(`DROP TABLE ${item}_${newId}`);
