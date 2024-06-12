@@ -70,7 +70,7 @@ export const newOrganization = async (req, res) => {
       });
       const PaymentMethod = createDynamicModel("PaymentMethod", newId);
       await PaymentMethod.create({ comission: 0, name: "Наличные" });
-      await publishDeal(
+      publishDeal(
         firstTimeDemoDays,
         {
           phone: existingUser.cellphone,
@@ -79,7 +79,7 @@ export const newOrganization = async (req, res) => {
         },
         13,
         15
-      );
+      ).catch((e) => console.log("Publish Deal error:", e));
     } catch (e) {
       for (let item of orgSeparateTables) {
         await sequelize.query(`DROP TABLE ${item}_${newId}`);
