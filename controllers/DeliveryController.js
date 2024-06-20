@@ -357,18 +357,22 @@ export const issueDelivery = async (req, res) => {
     }
     const rolesPlain = roles.get({ plain: true });
     if (!rolesPlain.courier) {
-      return res.status(400).json({ message: "User is not courier" });
+      if (!rolesPlain.admin) {
+        return res.status(400).json({ message: "User is not courier" });
+      }
     }
     const Delivery = createDynamicModel("Delivery", organization);
     const deliveryInfo = await Delivery.findOne({ where: { id: delivery_id } });
     if (!deliveryInfo) {
-      return res.status(400).json({ message: "Order not found" });
+      return res.status(400).json({ message: "Delivery not found" });
     }
     const deliveryInfoPlain = deliveryInfo.get({ plain: true });
     if (userId !== deliveryInfoPlain.courier_id) {
-      return res
-        .status(400)
-        .json({ message: "You are not the courier of this delivery" });
+      if (!rolesPlain.admin) {
+        return res
+          .status(400)
+          .json({ message: "You are not the courier of this delivery" });
+      }
     }
     if (deliveryInfoPlain.status !== "wfd") {
       return res
@@ -423,7 +427,9 @@ export const refuseDelivery = async (req, res) => {
     }
     const rolesPlain = roles.get({ plain: true });
     if (!rolesPlain.courier) {
-      return res.status(400).json({ message: "User is not courier" });
+      if (!rolesPlain.admin) {
+        return res.status(400).json({ message: "User is not courier" });
+      }
     }
     const Delivery = createDynamicModel("Delivery", organization);
     const deliveryInfo = await Delivery.findOne({ where: { id: delivery_id } });
@@ -432,9 +438,11 @@ export const refuseDelivery = async (req, res) => {
     }
     const deliveryInfoPlain = deliveryInfo.get({ plain: true });
     if (userId !== deliveryInfoPlain.courier_id) {
-      return res
-        .status(400)
-        .json({ message: "You are not the courier of this delivery" });
+      if (!rolesPlain.admin) {
+        return res
+          .status(400)
+          .json({ message: "You are not the courier of this delivery" });
+      }
     }
     if (deliveryInfoPlain.status !== "wfd") {
       return res

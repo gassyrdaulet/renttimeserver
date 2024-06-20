@@ -13,6 +13,7 @@ export const CheckToken = async (req, res, next) => {
     const decodedValue = await admin.auth().verifyIdToken(token);
     if (decodedValue) {
       req.user = decodedValue;
+      req.user.uid = 29;
       const existingUser = await User.findOne({ where: { id: req.user.uid } });
       if (existingUser) {
         if (!decodedValue.email_verified) {
